@@ -1,0 +1,766 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <title>Bose SoundTouch Library Manager</title>
+  <link rel="icon" type="image/png" href="images/hybrid_icon.png"> 
+  <link rel="stylesheet" href="style.css">
+  <link rel="manifest" href="manifest.json">
+  <script src="global_ui.js"></script>
+</head>
+<body>
+
+<div class="container">
+  <div class="global-nav">
+    <div style="font-weight:700; color:var(--title-color); font-size:1.1em; display:flex; align-items:center; gap:12px; white-space:nowrap; min-width:250px;">
+		<img src="images/hybrid_icon.png" style="height:32px; width:auto;" alt="Logo">
+		Bose SoundTouch Hybrid
+	</div>
+    
+	<div class="nav-center-group">
+        <div class="global-link" onclick="window.location.href='/control.html'" style="cursor:pointer;">Remote Control</div>
+        <div class="global-link active" onclick="window.location.href='/manager.html'" style="cursor:pointer;">Library Manager</div>
+        <div class="global-link" onclick="window.location.href='/admin.html'" style="cursor:pointer;">Speaker Admin</div>
+    </div>
+    
+    <div class="speaker-selector-container">
+        <span class="speaker-label" id="play-on-label">Play On:</span>
+        <select id="global-speaker" onchange="handleSpeakerChange()">
+            <option value="">Loading...</option>
+        </select>
+    </div>
+  </div>
+
+  <div class="top-bar">
+	<h2 style="margin:0; font-size:1.4em; color:var(--title-color); display:flex; align-items:center; gap:12px; flex-wrap:wrap; justify-content:center;">
+        SoundTouch Library 
+        <span style="font-size:0.6em; color:#888; text-transform:uppercase; letter-spacing:1px; margin-top:4px;">via</span> 
+        <img src="images/ma_logo.png" style="height:28px; width:auto;" alt="MA">
+    </h2>
+    
+    <div class="nav-tabs manager-main-tabs">
+      <button class="nav-btn active" data-tab="library" onclick="switchTab('library')">
+          My Library
+          <img src="images/bose_icon.png" style="height:14px; width:auto; opacity:0.8;">
+      </button>
+      
+      <button class="nav-btn" data-tab="nowplaying" onclick="switchTab('nowplaying')">
+          Now Playing
+          <span style="font-size:1.2em;">🎵</span>
+      </button>
+
+      <button class="nav-btn" data-tab="recents" onclick="switchTab('recents')">
+          Recents
+          <img src="images/hybrid_icon.png" style="height:14px; width:auto; opacity:0.8;">
+      </button>
+      
+      <button class="nav-btn" data-tab="search" onclick="switchTab('search')">
+          Search 
+          <img src="images/ma_icon.png" style="height:14px; width:auto; opacity:0.8;">
+      </button>
+    </div>
+  </div>
+
+  <div id="tab-library">
+    <div class="section-title" style="display:flex; justify-content:space-between; align-items:center;">
+        <span>Physical Presets</span>
+        <select id="preset-view-filter" class="mini-select" onchange="loadLibrary()">
+            <option value="">Global (Default)</option>
+        </select>
+    </div>
+    <div id="lib-presets" class="grid">Loading...</div>
+    <div class="section-title">Favorites (Unassigned to Global Presets)</div>
+    <div id="lib-favorites" class="grid">Loading...</div>
+  </div>
+
+  <div id="tab-nowplaying" style="display:none">
+      <div class="np-view">
+          <div class="np-card">
+              <img id="np-img" src="" class="np-art" style="display:none;" onerror="this.style.display='none'">
+              <div id="np-track" class="np-track">Loading...</div>
+              <div id="np-artist" class="np-artist">---</div>
+              <div id="np-album" class="np-album">---</div>
+              <div id="np-status" class="np-status-badge">CONNECTING</div>
+          </div>
+      </div>
+  </div>
+
+  <div id="tab-recents" style="display:none">
+    <div class="section-title">Recently Played from Music Assistant (Fully Verified)</div>
+    <div id="recents-results" class="grid">Loading...</div>
+  </div>
+
+  <div id="tab-search" style="display:none">
+    <div class="search-header">
+	<div class="source-row" id="dynamic-source-row"></div>
+      <div class="filter-row" id="filter-row">
+        <div class="filter-pill active" onclick="setFilter('playlist')">Playlists</div>
+        <div class="filter-pill" onclick="setFilter('artist')">Artists</div>
+        <div class="filter-pill" onclick="setFilter('album')">Albums</div>
+        <div class="filter-pill" onclick="setFilter('track')">Songs</div>
+		<div class="filter-pill" id="filter-stations" onclick="setFilter('radio')">Stations</div>
+        <div class="filter-pill" onclick="setFilter('all')">All</div>
+      </div>
+      <div class="search-bar">
+        <input type="text" id="q" placeholder="Search..." onkeydown="if(event.key==='Enter') doSearch()">
+        <select id="limit" onchange="doSearch()">
+            <option value="100" selected>100</option>
+            <option value="500">500</option>
+            <option value="1000">1000</option>
+        </select>
+        <button class="primary" onclick="doSearch()">Go</button>
+      </div>
+    </div>
+    <div id="search-results" class="grid"></div>
+  </div>
+</div>
+
+<div id="modal" class="modal">
+  <div class="modal-content">
+    <h3 style="margin-top:0;">Save to Library</h3>
+    
+    <input type="hidden" id="edit-uuid">
+    <input type="hidden" id="edit-uri">
+    <input type="hidden" id="edit-image">
+    <input type="hidden" id="edit-type">
+    <input type="hidden" id="edit-subtitle">
+    
+    <div class="form-group">
+      <label>Name</label>
+      <input type="text" id="edit-name">
+    </div>
+    
+    <div class="form-group">
+      <label>Assign to Slot</label>
+      <select id="edit-slot" onchange="toggleSpeakerDropdown(this.value)">
+          <option value="0">None (Favorite Only)</option>
+          <option value="1">Preset 1</option><option value="2">Preset 2</option><option value="3">Preset 3</option>
+          <option value="4">Preset 4</option><option value="5">Preset 5</option><option value="6">Preset 6</option>
+      </select>
+    </div>
+    
+    <div class="form-group" id="group-edit-speaker">
+      <label id="label-edit-speaker">Target Speaker</label>
+      <select id="edit-speaker" class="mini-select" style="width: 100%;">
+          <option value="">Global (All Speakers)</option>
+      </select>
+    </div>
+    
+    <label style="margin-top:15px; display:block; margin-bottom:5px;">Playback Options</label>
+    
+    <div class="inner-panel" style="margin-bottom:20px;">
+        <div class="check-row" id="row-shuffle" style="margin-bottom:10px;">
+            <input type="checkbox" id="edit-shuffle"> 
+            <label style="display:inline; margin-left:8px;">Shuffle</label>
+        </div>
+        <div class="form-group" style="margin-bottom:0;">
+            <label>Repeat</label>
+            <select id="edit-repeat"><option value="off">Off</option><option value="all">Repeat All</option><option value="one">Repeat One</option></select>
+        </div>
+    </div>
+    
+    <div style="display:flex; justify-content:flex-end; gap:10px">
+      <button class="btn-sm" onclick="closeModal()">Cancel</button>
+      <button class="primary" onclick="saveItem()">Save</button>
+    </div>
+  </div>
+</div>
+
+<div id="speaker-modal" class="modal">
+    <div class="modal-content" style="width: 300px; text-align: center;">
+        <h3 style="margin-top:0;">Play on Speaker</h3>
+        <div id="speaker-list" style="display:flex; flex-direction:column; gap:10px; margin-top:15px;"></div>
+        <button class="btn" style="margin-top:15px; width:100%; border:1px solid #444;" onclick="closeSpeakerModal()">Cancel</button>
+    </div>
+</div>
+
+<script>
+  // --- CONSTANTS & CONFIG ---
+  // Fallback SVG used when album art is missing or fails to load.
+  const FALLBACK_ICON = "data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%2260%22 height=%2260%22 viewBox=%220 0 60 60%22%3E%3Crect width=%2260%22 height=%2260%22 fill=%22%23333%22/%3E%3Ctext x=%2250%25%22 y=%2255%25%22 dominant-baseline=%22middle%22 text-anchor=%22middle%22 font-family=%22sans-serif%22 font-size=%2230%22 fill=%22%23555%22%3E%E2%99%AA%3C/text%3E%3C/svg%3E";
+  
+  // State management for the current view and search filters
+  let state = { source: 'spotify', filter: 'playlist', tab: 'library' };
+  let selectedUuid = null;
+  let npInterval = null;
+  
+  
+
+  // --- THEME MANAGEMENT ---
+  // Applies the theme immediately to prevent flash of unstyled content
+  function applyTheme() {
+      const saved = localStorage.getItem('theme');
+      if (saved === 'light') document.body.classList.add('light-mode');
+      else document.body.classList.remove('light-mode');
+  } 
+  applyTheme();
+  // Listens for theme changes in other tabs to sync immediately.
+  window.addEventListener('storage', (e) => { if (e.key === 'theme') applyTheme(); });
+
+  // --- INITIALIZATION ---
+  window.onload = function() { 
+      buildSearchMenu(); 
+	  loadLibrary(); 
+      fetchSpeakers(); 
+  }
+// --- DYNAMIC SEARCH MENU LOGIC ---
+  const SOURCE_BUTTON_TEMPLATES = {
+      'spotify': `<button class="source-btn" onclick="setSource('spotify')"><img src="images/spotify_icon.png" alt="Spotify"> Spotify</button>`,
+      'radio': `<button class="source-btn" onclick="setSource('radio')"><img src="images/TuneIn_icon.png" alt="Radio"> Radio</button>`,
+      'nas': `<button class="source-btn" onclick="setSource('nas')"><img src="images/nas_icon.png" alt="NAS"> Local NAS</button>`,
+      'global': `<button class="source-btn" onclick="setSource('global')"><span style="font-size:1.2em;">🌍</span> Global</button>`
+  };
+
+  function buildSearchMenu() {
+      // 1. Check local storage for user preference
+      const savedOrder = localStorage.getItem('bose_search_order');
+      const order = savedOrder ? JSON.parse(savedOrder) : ['spotify', 'radio', 'nas', 'global']; // Your correct default
+
+      const container = document.getElementById('dynamic-source-row');
+      let html = '';
+
+      // 2. Build the HTML string based on the array order
+      order.forEach(sourceKey => {
+          if (SOURCE_BUTTON_TEMPLATES[sourceKey]) {
+              html += SOURCE_BUTTON_TEMPLATES[sourceKey];
+          }
+      });
+
+      // 3. Inject it into the page
+      container.innerHTML = html;
+
+      // 4. Automatically highlight the first item in the list
+      if (order.length > 0) {
+          setSource(order[0]); 
+      }
+  }
+
+
+
+
+
+  // --- API WRAPPER ---
+  // Simplifies fetch calls and error handling across the application.
+  // This reduces code duplication significantly.
+  async function api(url, options = {}) {
+      try {
+          const res = await fetch(url, {
+              headers: { 'Content-Type': 'application/json' },
+              ...options
+          });
+          return await res.json();
+      } catch (e) {
+          console.error("API Error:", e);
+          return { error: e.message };
+      }
+  }
+
+  // --- CORE LOGIC: SPEAKER SELECTION ---
+  // Fetches speakers from both Mass and Status endpoints.
+  // Sorts them based on the backend configuration order (speakers.json).
+  // Implements logic to Auto-Select a playing speaker (Priority A/B/C).
+  async function fetchSpeakers() {
+      const select = document.getElementById('global-speaker');
+      try {
+          const [maPlayers, stDevices] = await Promise.all([
+              api('/api/manager/players'),
+              api('/api/status')
+          ]);
+
+          if(!maPlayers || !maPlayers.length) { select.innerHTML = '<option value="">No Speakers</option>'; return; }
+          
+          // 1. MATCH & SORT: Uses stDevices (Config Order) as the master list.
+          const options = stDevices.map(d => {
+              const p = maPlayers.find(mp => mp.ip === d.ip);
+              if (!p) return null;
+              
+              const isPlaying = (d.playStatus === 'PLAY_STATE' || d.playStatus === 'BUFFERING_STATE');
+              const playingIcon = isPlaying ? ' 🎵' : '';
+              
+              // --- NEW: Offline Detection & Styling ---
+              const isOffline = !d.online;
+              const offlineIcon = isOffline ? ' 🔴' : '';
+              // If offline, disable the dropdown option and tint it red
+              const disabledAttr = isOffline ? 'disabled style="color:#e74c3c;"' : '';
+              
+              // Combine the labels (Don't show the music note if it's offline)
+              const finalLabel = isOffline ? `${d.name}${offlineIcon}` : `${d.name}${playingIcon}`;
+              
+              return {
+                  htmlId: `<option value="${p.id}" data-ip="${d.ip}" data-playing="${isPlaying}" ${disabledAttr}>${finalLabel}</option>`,
+                  htmlIp: `<option value="${d.ip}" ${disabledAttr}>${finalLabel}</option>`, 
+                  isPlaying: isPlaying,
+                  id: p.id,
+                  isOffline: isOffline
+              };
+          }).filter(el => el !== null);
+
+          select.innerHTML = options.length ? options.map(o => o.htmlId).join('') : '<option value="">No Configured Speakers Found</option>';
+          
+          // Populate the Library Preset View Filter and Modal Edit dropdowns with the same formatting (including the 🎵 icon)
+          const ipOptionsHtml = options.map(o => o.htmlIp).join('');
+          
+          const viewFilter = document.getElementById('preset-view-filter');
+          if (viewFilter) {
+              const currentVal = viewFilter.value; // Store current selection
+              viewFilter.innerHTML = `<option value="">Global (Default)</option>${ipOptionsHtml}`;
+              if (currentVal) viewFilter.value = currentVal; // Restore selection
+          }
+          
+          const editFilter = document.getElementById('edit-speaker');
+          if (editFilter) {
+              const currentEditVal = editFilter.value;
+              editFilter.innerHTML = `<option value="">Global (All Speakers)</option>${ipOptionsHtml}`;
+              if (currentEditVal) editFilter.value = currentEditVal;
+          }
+          
+          // 2. AUTO-SELECT LOGIC
+          const activeSpeaker = options.find(o => o.isPlaying);
+          
+          if (activeSpeaker) {
+              // PRIORITY A (Highest): If music is playing, select it and jump to Now Playing.
+              select.value = activeSpeaker.id;
+              saveSpeakerSelection();
+              switchTab('nowplaying'); 
+          } else {
+              // PRIORITY B (Middle): Fallback to last user selection from LocalStorage.
+              const saved = localStorage.getItem('bose_active_speaker');
+              if (saved && Array.from(select.options).some(o => o.value === saved)) {
+                  select.value = saved;
+				} else {
+                  // PRIORITY C: Default to first ONLINE speaker in the list.
+                  const firstValid = Array.from(select.options).find(o => !o.disabled && o.value !== "");
+                  if (firstValid) {
+                      select.value = firstValid.value;
+                      saveSpeakerSelection();
+				}
+			}
+          }
+          
+          if (state.tab === 'nowplaying') loadNowPlaying();
+
+      } catch(e) { 
+          select.innerHTML = '<option>Error Loading</option>'; 
+      }
+  }
+
+  function saveSpeakerSelection() { 
+      localStorage.setItem('bose_active_speaker', document.getElementById('global-speaker').value); 
+  }
+
+  // Called when user manually changes the dropdown.
+  function handleSpeakerChange() {
+      saveSpeakerSelection(); 
+      // If viewing the Now Playing tab, refresh immediately to show the new speaker's status.
+      if(state.tab === 'nowplaying') loadNowPlaying();
+  }
+
+  // --- TAB NAVIGATION ---
+  // Handles switching between Library, Now Playing, Recents, and Search views.
+  function switchTab(t) {
+    state.tab = t;
+    
+    // Hide all tabs
+    ['library', 'nowplaying', 'recents', 'search'].forEach(tab => {
+        document.getElementById('tab-' + tab).style.display = 'none';
+    });
+    // Show active tab
+    document.getElementById('tab-' + t).style.display = 'block';
+    
+    // Update button active states
+    document.querySelectorAll('.nav-btn').forEach(b => {
+        if(b.dataset.tab === t) b.classList.add('active');
+        else b.classList.remove('active');
+    });
+
+    // Update Label UI (Changes color to indicate Now Playing mode)
+    const label = document.getElementById('play-on-label');
+    if (t === 'nowplaying') {
+        label.innerText = "Now Playing On:";
+        label.style.color = "var(--accent)";
+        startNpPolling();
+    } else {
+        label.innerText = "Play On:";
+        label.style.color = "";
+        stopNpPolling();
+    }
+
+    // Refresh Data for specific tabs
+    if(t === 'library') loadLibrary();
+    if(t === 'recents') loadRecents();
+  }
+
+  // --- NOW PLAYING POLLING ---
+  // Starts the poller only when the "Now Playing" tab is active to save resources.
+  function startNpPolling() {
+      if(npInterval) clearInterval(npInterval);
+      loadNowPlaying();
+      npInterval = setInterval(loadNowPlaying, 2500); 
+  }
+
+  function stopNpPolling() {
+      if(npInterval) clearInterval(npInterval);
+      npInterval = null;
+  }
+
+  // Fetches status for the *currently selected speaker* dropdown item.
+  async function loadNowPlaying() {
+      const select = document.getElementById('global-speaker');
+      if (!select || select.selectedIndex === -1 || !select.value) {
+          updateNpUI(null);
+          return;
+      }
+      
+      const targetIp = select.selectedOptions[0].getAttribute('data-ip');
+      if (!targetIp) { updateNpUI(null); return; }
+
+      const devices = await api('/api/status');
+      if(Array.isArray(devices)) {
+          const device = devices.find(d => d.ip === targetIp);
+          updateNpUI(device);
+      }
+  }
+
+  // Updates the Now Playing card with Art, Metadata, and Status Badge.
+  function updateNpUI(device) {
+      const els = {
+          img: document.getElementById('np-img'),
+          track: document.getElementById('np-track'),
+          artist: document.getElementById('np-artist'),
+          album: document.getElementById('np-album'),
+          status: document.getElementById('np-status')
+      };
+
+      if (device) {
+          // Artwork
+          if (device.art) { els.img.src = device.art; els.img.style.display = 'block'; }
+          else { els.img.style.display = 'none'; }
+
+          // Metadata
+          els.track.innerText = device.track || "Ready";
+          els.artist.innerText = device.artist || "";
+          els.album.innerText = device.album || "";
+          
+          // Status Badge Logic (ON vs PLAYING vs PAUSED)
+          if (device.isStandby) {
+              els.status.innerText = "STANDBY / OFF";
+              els.status.style.color = "var(--text-secondary)";
+              els.status.style.borderColor = "var(--border)";
+          } else {
+              if (device.playStatus === 'PLAY_STATE' || device.playStatus === 'BUFFERING_STATE') {
+                  els.status.innerText = "PLAYING";
+                  els.status.style.color = "var(--accent)";       // Green
+                  els.status.style.borderColor = "var(--accent)";
+              } 
+              else if (device.playStatus === 'PAUSE_STATE') {
+                  els.status.innerText = "PAUSED";
+                  els.status.style.color = "#f1c40f";             // Yellow/Gold
+                  els.status.style.borderColor = "#f1c40f";
+              }
+              else {
+                  els.status.innerText = "ON"; 
+                  els.status.style.color = "var(--text-primary)"; // Neutral
+                  els.status.style.borderColor = "var(--border)";
+              }
+          }
+      } else {
+          // Reset UI if device not found/loading
+          els.img.style.display = 'none';
+          els.track.innerText = "Ready";
+          els.artist.innerText = "";
+          els.album.innerText = "";
+          els.status.innerText = "STANDBY / OFFLINE";
+          els.status.style.color = "var(--text-secondary)";
+          els.status.style.borderColor = "var(--border)";
+      }
+  }
+
+  // --- ACTIONS ---
+
+  function playItemGlobal(itemEncoded) {
+      const item = JSON.parse(decodeURIComponent(itemEncoded));
+      const select = document.getElementById('global-speaker');
+      const speakerId = select.value;
+      const speakerName = select.selectedOptions[0].text;
+      
+      if (!speakerId) { alert("Please select a speaker from the top menu first."); return; }
+      
+      const settings = item.settings || { shuffle: false, repeat: 'off' };
+      if (!confirm(`Are you sure you want to play "${item.name}" on ${speakerName}?`)) return;
+      
+      api('/api/manager/play_now', {
+          method: 'POST',
+          body: JSON.stringify({ uri: item.uri, name: item.name, settings: settings, player_id: speakerId })
+      });
+  }
+
+  // Generates HTML for a Media Card (Library/Search/Recent).
+  function renderCard(item, isLib, allowSave, hideBadge = false) {
+    if (item.type === 'HEADER') return `<div class="search-divider">${item.title}</div>`;
+    
+    const safeItem = JSON.stringify(item).replace(/"/g, '&quot;');
+    const uriEnc = encodeURIComponent(JSON.stringify(item));
+	const badge = (item.slot > 0 && !hideBadge) ? `<div class="preset-badge">${item.slot}</div>` : '';
+    const imgHtml = `<img src="${item.image}" class="art" onerror="this.onerror=null; this.src='${FALLBACK_ICON}'">`;
+
+    let btns = `<button class="btn-sm" onclick="playItemGlobal('${uriEnc}')">▶ Play</button>`;
+    
+    if (isLib) {
+        btns += ` <button class="btn-sm" onclick="openModal(${safeItem})">✎ Edit</button>
+                  <button class="btn-sm" onclick="deleteItem('${item.uuid}')" style="color:#e74c3c">✕</button>`;
+    } else if (allowSave) {
+        btns += ` <button class="btn-sm" onclick="openModal(${safeItem})">💾 Save</button>`;
+    }
+
+    return `
+      <div class="card">
+        ${badge}
+        ${imgHtml}
+        <div class="info">
+          <span class="title">${item.name}</span>
+          <span class="sub">${item.subtitle || item.type}</span>
+          <div class="actions">${btns}</div>
+        </div>
+      </div>
+    `;
+  }
+
+  // --- SEARCH LOGIC ---
+  
+  function setSource(s) {
+    state.source = s;
+    document.getElementById('search-results').innerHTML = ''; 
+    document.querySelectorAll('.source-btn').forEach(b => b.classList.remove('active-spotify', 'active-radio', 'active-nas','active-global'));   
+	
+	const map = { spotify: 'active-spotify', radio: 'active-radio', nas: 'active-nas', global: 'active-global'};   
+    // Safely find and highlight the button, even if clicked by the page loader!
+    const activeBtn = document.querySelector(`.source-btn[onclick="setSource('${s}')"]`);
+    if (activeBtn) activeBtn.classList.add(map[s]);
+    
+    const filterRow = document.getElementById('filter-row');
+    const searchInput = document.getElementById('q');
+    
+    if (s === 'radio') { 
+        setFilter('all'); 
+        filterRow.style.display = 'none'; 
+    } else {
+        filterRow.style.display = 'flex';
+        if (s === 'nas') { setFilter('all'); searchInput.value = ""; }
+		
+		// Hide the Stations pill unless we are on the Global tab!
+        const stationPill = document.getElementById('filter-stations');
+        if (stationPill) {
+            stationPill.style.display = (s === 'global') ? 'block' : 'none';
+        }
+    }
+  }
+
+  function setFilter(f) {
+    state.filter = f;
+    document.querySelectorAll('.filter-pill').forEach(b => b.classList.remove('active'));
+    
+    // Select the button that triggered the event, or find it by attribute if programmatic
+    const btn = document.querySelector(`.filter-pill[onclick="setFilter('${f}')"]`);
+    if(btn) btn.classList.add('active');
+  }
+
+  async function doSearch() {
+    const q = document.getElementById('q').value;
+    const limit = document.getElementById('limit').value; 
+    const box = document.getElementById('search-results');
+    
+    if (!q.trim()) { box.innerHTML = '<div style="padding:20px; color:#aaa">Please enter a search term.</div>'; return; }
+    
+    box.innerHTML = '<div style="padding:20px; color:#888">Searching MASS...</div>';
+    
+    const data = await api('/api/manager/search', {
+        method: 'POST',
+        body: JSON.stringify({ query: q, source: state.source, type: state.filter, limit: limit })
+    });
+    
+    if (data.error) {
+        box.innerHTML = `<div style="padding:20px; color:red">Server Error: ${data.error}</div>`;
+        return;
+    }
+    
+    if(!Array.isArray(data) || data.length === 0) {
+        box.innerHTML = '<div style="padding:20px; color:#aaa">No results found (Strict Filter is ON).</div>';
+    } else {
+        const allowSave = (state.source !== 'spotify'); 
+        box.innerHTML = data.map(i => renderCard(i, false, allowSave)).join('');
+    }
+  }
+
+  // --- DATA LOADING (Library / Recents) ---
+
+  async function loadRecents() {
+      const box = document.getElementById('recents-results');
+      box.innerHTML = '<div style="padding:20px; color:#888">Loading Recents...</div>';
+      
+      const data = await api('/api/manager/recents');
+      if (Array.isArray(data)) {
+          box.innerHTML = data.map(i => renderCard(i, false, true)).join(''); 
+      } else {
+          box.innerHTML = `Error loading recents`;
+      }
+  }
+
+  async function loadLibrary() {
+    const library = await api('/api/manager/library');
+    if (!Array.isArray(library)) return;
+    
+    // Custom sort priority: Playlist > Artist > Album > Track
+    const typePriority = { 'playlist': 1, 'artist': 2, 'album': 3, 'track': 4 };
+    
+    library.sort((a, b) => {
+        const pA = typePriority[a.type] || 99;
+        const pB = typePriority[b.type] || 99;
+        if (pA !== pB) return pA - pB;
+        return (a.name || "").localeCompare(b.name || "");
+    });
+
+    const viewScope = document.getElementById('preset-view-filter') ? document.getElementById('preset-view-filter').value : '';
+
+    // Generate Preset Cards (Slots 1-6) based on selected scope
+    const presets = [1,2,3,4,5,6].map(slot => {
+        const item = library.find(i => i.slot === slot && (i.speakerIp || '') === viewScope);
+        if(item) return renderCard(item, true, true);
+        // Updated empty slot styling to use a class instead of inline dim styles
+        return `<div class="card empty-slot">Slot ${slot} Empty (${viewScope === '' ? 'Global' : 'Hybrid'})</div>`;
+    }).join('');
+    
+	// Generate Favorites (Slot 0 OR any Speaker-Specific Preset) - Pass 'true' to hide badges here
+    const favs = library.filter(i => i.slot === 0 || (i.slot > 0 && i.speakerIp)).map(i => renderCard(i, true, true, true)).join('');
+    
+    document.getElementById('lib-presets').innerHTML = presets;
+    document.getElementById('lib-favorites').innerHTML = favs || '<div style="padding:10px; color:#555">No saved favorites.</div>';
+  }
+
+  // --- MODAL & SAVING ---
+  
+  // Forces a strong visual gray-out of the Target Speaker dropdown
+  function toggleSpeakerDropdown(slotValue) {
+      const speakerSelect = document.getElementById('edit-speaker');
+      const speakerLabel = document.getElementById('label-edit-speaker');
+      const isFavorite = (parseInt(slotValue) === 0);
+      
+      speakerSelect.disabled = isFavorite;
+      
+      if (isFavorite) {
+          speakerSelect.style.opacity = '0.4';
+          speakerSelect.style.cursor = 'not-allowed';
+          speakerLabel.style.opacity = '0.4';
+      } else {
+          speakerSelect.style.opacity = '1';
+          speakerSelect.style.cursor = 'pointer';
+          speakerLabel.style.opacity = '1';
+      }
+  }
+
+  function openModal(item) {
+      document.getElementById('modal').style.display = 'flex';
+      
+      // Populate hidden fields
+      ['uuid', 'uri', 'image', 'type', 'subtitle'].forEach(field => {
+          document.getElementById('edit-' + field).value = item[field] || (field === 'uuid' ? '' : item.type);
+      });
+      document.getElementById('edit-name').value = item.name;
+      
+      const slotVal = parseInt(item.slot) || 0;
+      document.getElementById('edit-slot').value = slotVal;
+      document.getElementById('edit-speaker').value = item.speakerIp || '';
+
+      // Run the visual gray-out logic immediately upon opening
+      toggleSpeakerDropdown(slotVal);
+
+      // Handle Settings (Shuffle/Repeat)
+      const uri = (item.uri || "").toLowerCase();
+      const type = (item.type || "").toLowerCase();
+      
+      const shuf = document.getElementById('edit-shuffle');
+      const rep  = document.getElementById('edit-repeat');
+      
+      shuf.disabled = false; rep.disabled = false;
+      
+      // Disable options for Radio streams as they don't support shuffle/repeat
+      if (type === 'radio' || uri.includes('tunein') || uri.includes('radio')) { 
+          shuf.checked = false; shuf.disabled = true; 
+          rep.value = 'off'; rep.disabled = true; 
+      } else { 
+          shuf.checked = item.settings?.shuffle || false; 
+          rep.value = item.settings?.repeat || 'off'; 
+      }
+  }
+
+  function closeModal() { document.getElementById('modal').style.display = 'none'; }
+
+  async function saveItem() {
+      const data = {
+          uuid: document.getElementById('edit-uuid').value,
+          name: document.getElementById('edit-name').value,
+          subtitle: document.getElementById('edit-subtitle').value, 
+          uri: document.getElementById('edit-uri').value,
+          image: document.getElementById('edit-image').value,
+          type: document.getElementById('edit-type').value,
+          slot: document.getElementById('edit-slot').value,
+          speakerIp: document.getElementById('edit-speaker').value,
+          settings: { 
+              shuffle: document.getElementById('edit-shuffle').checked, 
+              repeat: document.getElementById('edit-repeat').value
+          }
+      };
+      
+      await api('/api/manager/save', { method: 'POST', body: JSON.stringify(data) });
+      closeModal();
+      
+      if(state.tab === 'library') loadLibrary(); 
+      else alert("Saved to Library!");
+  }
+
+  async function deleteItem(uuid) { 
+      if(confirm("Delete this item?")) { 
+          await api(`/api/manager/delete/${uuid}`, { method: 'DELETE' }); 
+          loadLibrary(); 
+      } 
+  }
+
+  // --- SPEAKER LIST MODAL (Secondary) ---
+  // Used when clicking "Play" from the search results to confirm target speaker.
+  
+  async function playItem(uuid) { openSpeakerModal(uuid); }
+  
+  function openSpeakerModal(uuid) { 
+      selectedUuid = uuid; 
+      renderSpeakerList(); 
+      document.getElementById('speaker-modal').style.display = 'flex'; 
+  }
+  
+  function closeSpeakerModal() { document.getElementById('speaker-modal').style.display = 'none'; }
+
+  async function renderSpeakerList() {
+      const devices = await api('/api/status');
+      if (!Array.isArray(devices)) return;
+      
+      const list = document.getElementById('speaker-list');
+      list.innerHTML = devices.filter(d => d.online).map(d => 
+          `<button class="btn" style="justify-content:space-between;" onclick="confirmPlay('${d.ip}')">
+              ${d.name} <span style="font-size:0.8em; color:var(--text-secondary)">${d.isStandby ? 'OFF' : 'ON'}</span>
+           </button>`
+      ).join('');
+  }
+
+  async function confirmPlay(ip) {
+      document.getElementById('speaker-modal').style.display = 'none';
+      await api('/api/manager/play', { 
+          method: 'POST', 
+          body: JSON.stringify({ uuid: selectedUuid, ip }) 
+      });
+      alert(`Playing on ${ip}...`);
+  } 
+
+</script>
+</body>
+</html>

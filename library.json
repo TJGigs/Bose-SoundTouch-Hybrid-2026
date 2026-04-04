@@ -1,0 +1,422 @@
+[
+  {
+    "uuid": "b22f0ebd",
+    "slot": 1,
+    "speakerIp": "",
+    "name": "Diana Krall Radio",
+    "subtitle": "Diana Krall • Spotify",
+    "uri": "spotify--UgwRanCa://playlist/2cni3AWEjMILeZin5JSKi1",
+    "image": "https://mosaic.scdn.co/640/ab67616d00001e0207e5cb4306d2162f81abb82dab67616d00001e0214ee26f5433909c50322b3deab67616d00001e022ec8ab4f947e57d3ebd576c2ab67616d00001e02e5b8d6bcaf8f937357c7fa56",
+    "type": "playlist",
+    "settings": {
+      "shuffle": false,
+      "repeat": "off"
+    }
+  },
+  {
+    "uuid": "efe49168",
+    "slot": 0,
+    "speakerIp": "",
+    "name": "Diana Krall Radio",
+    "subtitle": "Diana Krall • Spotify",
+    "uri": "spotify--UgwRanCa://playlist/37i9dQZF1E4wRZrmIJlbLI",
+    "image": "https://pickasso.spotifycdn.com/image/ab67c0de0000deef/dt/v1/img/radio/artist/5z1VAFwT35EVvCp1XlZZuL/en",
+    "type": "playlist",
+    "settings": {
+      "shuffle": false,
+      "repeat": "off"
+    }
+  },
+  {
+    "uuid": "b93c3f98",
+    "slot": 4,
+    "speakerIp": "",
+    "name": "KJAZZ 88.1",
+    "subtitle": "radio • Tunein",
+    "uri": "tunein--aicmaVtc://radio/s37062",
+    "image": "http://cdn-profiles.tunein.com/s37062/images/logoq.jpg?t=1",
+    "type": "radio",
+    "settings": {
+      "shuffle": false,
+      "repeat": "off"
+    }
+  },
+  {
+    "uuid": "b50b93db",
+    "slot": 5,
+    "speakerIp": "",
+    "name": "This Is Alexi Murdoch",
+    "subtitle": "By playlist",
+    "uri": "spotify--UgwRanCa://playlist/37i9dQZF1DZ06evO1bmwHV",
+    "image": "https://pickasso.spotifycdn.com/image/ab67c0de0000deef/dt/v1/img/thisisv3/25mrbNwFzoqPWyYXLhiDRw/en",
+    "type": "playlist",
+    "settings": {
+      "shuffle": false,
+      "repeat": "off"
+    }
+  },
+  {
+    "uuid": "b1841417",
+    "slot": 0,
+    "speakerIp": "",
+    "name": "Late Night Jazz",
+    "subtitle": "By playlist",
+    "uri": "spotify--UgwRanCa://playlist/37i9dQZF1DX4wta20PHgwo",
+    "image": "https://i.scdn.co/image/ab67706f00000002f1b531336832e9de050340e2",
+    "type": "playlist",
+    "settings": {
+      "shuffle": false,
+      "repeat": "off"
+    }
+  },
+  {
+    "uuid": "115cc858",
+    "slot": 3,
+    "speakerIp": "",
+    "name": "Mozart: Piano Works",
+    "subtitle": "album • András Schiff",
+    "uri": "library://album/172",
+    "image": "/api/manager/proxy_image?mode=raw&path=Andr%C3%A1s%20Schiff%2FMozart_%20Piano%20Works%2F01%20Mozart_%20Piano%20Sonata%20%2315%20In%20C%2C%20K.m4a&provider=filesystem_local--4Cs9CoVZ",
+    "type": "album",
+    "settings": {
+      "shuffle": false,
+      "repeat": "off"
+    }
+  },
+  {
+    "uuid": "a253b5d2",
+    "slot": 0,
+    "speakerIp": "",
+    "name": "Instrumental Funk",
+    "subtitle": "playlist • Spotify",
+    "uri": "library://playlist/23",
+    "image": "https://i.scdn.co/image/ab67706f00000002e93f1bd0ceeb553d9110e126",
+    "type": "playlist",
+    "settings": {
+      "shuffle": true,
+      "repeat": "all"
+    }
+  },
+  {
+    "uuid": "606a76ea",
+    "slot": 0,
+    "speakerIp": "",
+    "name": "The Man With The Bag",
+    "subtitle": "album • Diana Krall",
+    "uri": "library://album/5",
+    "image": "https://i.scdn.co/image/ab67616d0000b2738b1562f8479fb5f881d6c920",
+    "type": "album",
+    "settings": {
+      "shuffle": false,
+      "repeat": "off"
+    }
+  },
+  {
+    "uuid": "edeab968",
+    "slot": 0,
+    "speakerIp": "",
+    "name": "This Is Nina Simone",
+    "subtitle": "playlist • Spotify",
+    "uri": "spotify--UgwRanCa://playlist/37i9dQZF1DZ06evO4xXdS0",
+    "image": "https://pickasso.spotifycdn.com/image/ab67c0de0000deef/dt/v1/img/thisisv3/7G1GBhoKtEPnP86X2PvEYO/en",
+    "type": "playlist",
+    "settings": {
+      "shuffle": false,
+      "repeat": "off"
+    }
+  },
+  {
+    "uuid": "52283475",
+    "slot": 0,
+    "speakerIp": "",
+    "name": "Diana Krall Radio",
+    "subtitle": "playlist • icky242",
+    "uri": "spotify--UgwRanCa://playlist/2cni3AWEjMILeZin5JSKi1",
+    "image": "https://mosaic.scdn.co/640/ab67616d00001e0207e5cb4306d2162f81abb82dab67616d00001e0214ee26f5433909c50322b3deab67616d00001e022ec8ab4f947e57d3ebd576c2ab67616d00001e02e5b8d6bcaf8f937357c7fa56",
+    "type": "playlist",
+    "settings": {
+      "shuffle": false,
+      "repeat": "off"
+    }
+  },
+  {
+    "uuid": "c54f94fb",
+    "slot": 0,
+    "speakerIp": "",
+    "name": "Dinner Jazz",
+    "subtitle": "playlist • Spotify",
+    "uri": "spotify--UgwRanCa://playlist/37i9dQZF1DWWKeNBqaIy5U",
+    "image": "https://i.scdn.co/image/ab67706f00000002d497c6e15e12d5ff9df6e5f9",
+    "type": "playlist",
+    "settings": {
+      "shuffle": false,
+      "repeat": "off"
+    }
+  },
+  {
+    "uuid": "2ea5a90a",
+    "slot": 0,
+    "speakerIp": "",
+    "name": "Late Night Jazz",
+    "subtitle": "playlist • Spotify",
+    "uri": "spotify--UgwRanCa://playlist/37i9dQZF1DX4wta20PHgwo",
+    "image": "https://i.scdn.co/image/ab67706f00000002f1b531336832e9de050340e2",
+    "type": "playlist",
+    "settings": {
+      "shuffle": false,
+      "repeat": "off"
+    }
+  },
+  {
+    "uuid": "92c64afb",
+    "slot": 0,
+    "speakerIp": "",
+    "name": "Mozart: Clarinet Concerto in A Major, K. 622 & Clarinet Quintet in A Major, K. 581",
+    "subtitle": "album • Wolfgang Amadeus Mozart",
+    "uri": "spotify--UgwRanCa://album/5UtzMR0uVH9Ti4pIGvN8oA",
+    "image": "https://i.scdn.co/image/ab67616d0000b27317bf99adeb8ae548e832ff07",
+    "type": "album",
+    "settings": {
+      "shuffle": false,
+      "repeat": "off"
+    }
+  },
+  {
+    "uuid": "3b82f72c",
+    "slot": 0,
+    "speakerIp": "",
+    "name": "Background Instrumental Acoustic Guitar Mix",
+    "subtitle": "playlist • Spotify",
+    "uri": "spotify--UgwRanCa://playlist/37i9dQZF1EIcItTSjD4rx7",
+    "image": "https://seed-mix-image.spotifycdn.com/v6/img/desc/Background%20Instrumental%20Acoustic%20Guitar/en/default",
+    "type": "playlist",
+    "settings": {
+      "shuffle": false,
+      "repeat": "off"
+    }
+  },
+  {
+    "uuid": "6df53be7",
+    "slot": 0,
+    "speakerIp": "",
+    "name": "Iron and Wine-ish",
+    "subtitle": "playlist • 1230781156",
+    "uri": "spotify--UgwRanCa://playlist/3JTDYnhibAKyB5Xj5HCkzp",
+    "image": "https://mosaic.scdn.co/640/ab67616d00001e02024bdaecebd5e9d3b6a0949eab67616d00001e0215ab948602a7d92327242789ab67616d00001e02662ae319e9f61635425ea723ab67616d00001e02f94e2e851333a66e3b0488c6",
+    "type": "playlist",
+    "settings": {
+      "shuffle": false,
+      "repeat": "off"
+    }
+  },
+  {
+    "uuid": "074e0293",
+    "slot": 0,
+    "speakerIp": "",
+    "name": "This Is Chilly Gonzales",
+    "subtitle": "playlist • Spotify",
+    "uri": "spotify--UgwRanCa://playlist/37i9dQZF1DZ06evO0bsBKo",
+    "image": "https://pickasso.spotifycdn.com/image/ab67c0de0000deef/dt/v1/img/thisisv3/0qudezVgvl4Chd9BgNFB83/en",
+    "type": "playlist",
+    "settings": {
+      "shuffle": false,
+      "repeat": "off"
+    }
+  },
+  {
+    "uuid": "485b8d9b",
+    "slot": 0,
+    "speakerIp": "",
+    "name": "Mumford & Sons – Babel (Deluxe Version)",
+    "subtitle": "playlist • John",
+    "uri": "spotify--UgwRanCa://playlist/5s4z5TnYU6ZpzJQgXmCXSN",
+    "image": "https://mosaic.scdn.co/640/ab67616d00001e0207989cd8699c9aaa2c232d08ab67616d00001e02905362d531596cd431241bd9ab67616d00001e029ad7dd6870950bbcb02bed09ab67616d00001e02cf0ad300d443dd14cc3fe8dc",
+    "type": "playlist",
+    "settings": {
+      "shuffle": false,
+      "repeat": "off"
+    }
+  },
+  {
+    "uuid": "a1a81268",
+    "slot": 0,
+    "speakerIp": "",
+    "name": "Where or When",
+    "subtitle": "Standard Time Vol. 3: The Resolution Of Romance • Wynton Marsalis",
+    "uri": "spotify--UgwRanCa://track/2JR1WeETsXmFR1kRC2oXXq",
+    "image": "https://i.scdn.co/image/ab67616d0000b2735dd040db4a0d759018f13124",
+    "type": "track",
+    "settings": {
+      "shuffle": false,
+      "repeat": "all"
+    }
+  },
+  {
+    "uuid": "544788cc",
+    "slot": 2,
+    "speakerIp": "",
+    "name": "Heart Letting Go",
+    "subtitle": "Nobody Wants This Season 2: The Soundtrack • Chris Stapleton",
+    "uri": "spotify--UgwRanCa://track/4EwpXldfU693P8z1ucbfur",
+    "image": "https://i.scdn.co/image/ab67616d0000b273c4b40fa8977a5aa12cb9257a",
+    "type": "track",
+    "settings": {
+      "shuffle": false,
+      "repeat": "all"
+    }
+  },
+  {
+    "uuid": "53412475",
+    "slot": 0,
+    "speakerIp": "",
+    "name": "The Girl In The Other Room",
+    "subtitle": "The Girl In The Other Room • Diana Krall",
+    "uri": "spotify--UgwRanCa://track/7ubYuW7roWxUgqJXngrgRp",
+    "image": "https://i.scdn.co/image/ab67616d0000b273e7b588e9d98a931180ba0183",
+    "type": "track",
+    "settings": {
+      "shuffle": false,
+      "repeat": "off"
+    }
+  },
+  {
+    "uuid": "b3c8fb57",
+    "slot": 0,
+    "speakerIp": "",
+    "name": "Bewitched",
+    "subtitle": "album • Laufey",
+    "uri": "spotify--UgwRanCa://album/1rpCHilZQkw84A3Y9czvMO",
+    "image": "https://i.scdn.co/image/ab67616d0000b27374c732f8aa0e0ccbb3d17d96",
+    "type": "album",
+    "settings": {
+      "shuffle": false,
+      "repeat": "off"
+    }
+  },
+  {
+    "uuid": "11955efa",
+    "slot": 0,
+    "speakerIp": "",
+    "name": "This Is Laufey",
+    "subtitle": "playlist • Spotify",
+    "uri": "spotify--UgwRanCa://playlist/37i9dQZF1DZ06evO4iRboc",
+    "image": "https://pickasso.spotifycdn.com/image/ab67c0de0000deef/dt/v1/img/thisisv3/7gW0r5CkdEUMm42w9XpyZO/en",
+    "type": "playlist",
+    "settings": {
+      "shuffle": false,
+      "repeat": "off"
+    }
+  },
+  {
+    "uuid": "43ce7756",
+    "slot": 0,
+    "speakerIp": "",
+    "name": "Bored",
+    "subtitle": "Bewitched: The Goddess Edition • Laufey",
+    "uri": "spotify--UgwRanCa://track/2SPbioo65CuUB3H0aW1ID5",
+    "image": "https://i.scdn.co/image/ab67616d0000b27313832cc69a78c53b18a8bc10",
+    "type": "track",
+    "settings": {
+      "shuffle": false,
+      "repeat": "off"
+    }
+  },
+  {
+    "uuid": "4316fbac",
+    "slot": 0,
+    "speakerIp": "",
+    "name": "Lover Girl",
+    "subtitle": "A Matter of Time • Laufey",
+    "uri": "spotify--UgwRanCa://track/4nwjvcUjV7cexhwA40Bh5i",
+    "image": "https://i.scdn.co/image/ab67616d0000b2738f68f6e65c1cfd36bb21561c",
+    "type": "track",
+    "settings": {
+      "shuffle": false,
+      "repeat": "off"
+    }
+  },
+  {
+    "uuid": "4bd45214",
+    "slot": 0,
+    "speakerIp": "",
+    "name": "No Existen",
+    "subtitle": "album • laufy",
+    "uri": "spotify--UgwRanCa://album/4sJDUa2m0YEr6cA0S6E5dY",
+    "image": "https://i.scdn.co/image/ab67616d0000b2738f7d32ed60a8925d91bf11b4",
+    "type": "album",
+    "settings": {
+      "shuffle": false,
+      "repeat": "off"
+    }
+  },
+  {
+    "uuid": "57e57e81",
+    "slot": 0,
+    "speakerIp": "",
+    "name": "No Existen",
+    "subtitle": "album • laufy",
+    "uri": "spotify--UgwRanCa://album/4sJDUa2m0YEr6cA0S6E5dY",
+    "image": "https://i.scdn.co/image/ab67616d0000b2738f7d32ed60a8925d91bf11b4",
+    "type": "album",
+    "settings": {
+      "shuffle": false,
+      "repeat": "off"
+    }
+  },
+  {
+    "uuid": "23752751",
+    "slot": 0,
+    "speakerIp": "",
+    "name": "laufey ",
+    "subtitle": "playlist • solar",
+    "uri": "spotify--UgwRanCa://playlist/4RXT5pGMQNZBcSHE1uV1Eu",
+    "image": "https://image-cdn-ak.spotifycdn.com/image/ab67706c0000da840d8c5acb748d530ef3e967be",
+    "type": "playlist",
+    "settings": {
+      "shuffle": false,
+      "repeat": "off"
+    }
+  },
+  {
+    "uuid": "bb803592",
+    "slot": 0,
+    "speakerIp": "",
+    "name": "Laufey Mix",
+    "subtitle": "playlist • Spotify",
+    "uri": "spotify--UgwRanCa://playlist/37i9dQZF1EIWCJohaHcLid",
+    "image": "https://pickasso.spotifycdn.com/image/ab67c0de0000deef/dt/v1/img/artistmix/7gW0r5CkdEUMm42w9XpyZO/en",
+    "type": "playlist",
+    "settings": {
+      "shuffle": false,
+      "repeat": "off"
+    }
+  },
+  {
+    "uuid": "f9328cf5",
+    "slot": 6,
+    "speakerIp": "",
+    "name": "Bewitched: The Goddess Edition",
+    "subtitle": "Laufey • Spotify",
+    "uri": "spotify--UgwRanCa://album/1hmlhl74JfLyUqmqtCwvFb",
+    "image": "https://i.scdn.co/image/ab67616d0000b27313832cc69a78c53b18a8bc10",
+    "type": "album",
+    "settings": {
+      "shuffle": false,
+      "repeat": "all"
+    }
+  },
+  {
+    "uuid": "8ee4e97c",
+    "slot": 0,
+    "speakerIp": "",
+    "name": "A Night At The Symphony",
+    "subtitle": "Laufey • Spotify",
+    "uri": "spotify--UgwRanCa://album/0ONGXnqkOl98GYJy619wqn",
+    "image": "https://i.scdn.co/image/ab67616d0000b2730c14cc34bc3be11bccbad85f",
+    "type": "album",
+    "settings": {
+      "shuffle": false,
+      "repeat": "off"
+    }
+  }
+]

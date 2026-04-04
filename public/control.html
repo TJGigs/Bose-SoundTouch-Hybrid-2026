@@ -1,0 +1,750 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>SoundTouch Hybrid Control</title>
+  <link rel="icon" type="image/png" href="images/hybrid_icon.png">
+  <link rel="stylesheet" href="style.css">
+  <link rel="manifest" href="manifest.json">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/morphdom/2.7.0/morphdom-umd.min.js"></script>
+  <script src="global_ui.js"></script> 
+</head>
+<body>
+
+<div class="container">
+  <div class="global-nav">
+	<div style="font-weight:700; color:var(--title-color); font-size:1.1em; display:flex; align-items:center; gap:12px; white-space:nowrap; min-width:250px;">
+		<img src="images/hybrid_icon.png" style="height:32px; width:auto;" alt="Logo">
+		Bose SoundTouch Hybrid
+	</div>
+    
+	<div class="nav-center-group">
+        <div class="global-link active" onmousedown="window.location.href='/control.html'">Remote Control</div>
+        <div class="global-link" onmousedown="window.location.href='/manager.html'">Library Manager</div>
+        <div class="global-link" onmousedown="window.location.href='/admin.html'">Speaker Admin</div>
+    </div>
+
+    <div style="min-width:250px; display:flex; justify-content:flex-end;">
+        <button class="btn-all-off" onclick="triggerGlobalAllOff()">
+            <span style="color: var(--danger); font-size: 1.1em;">⏻</span> All Off
+        </button>
+    </div>
+  </div>
+
+  <div id="app" class="grid">Loading Speakers...</div>
+</div>
+
+<script>
+  // --- THEME MANAGEMENT ---
+  // Checks local storage for theme preference and applies 'light-mode' class if necessary.
+  function applyTheme() {
+      const saved = localStorage.getItem('theme');
+      if (saved === 'light') document.body.classList.add('light-mode');
+      else document.body.classList.remove('light-mode');
+  }
+  applyTheme();
+  // Listens for storage changes (e.g., from other tabs) to sync theme instantly.
+  window.addEventListener('storage', (e) => { if (e.key === 'theme') applyTheme(); });
+
+  // --- GLOBAL STATE ---
+  let currentDevices = []; // Stores the latest snapshot of speaker data from the backend.
+  let isUserInteracting = false; // Flags if the user is dragging a slider to pause polling.
+  let isPollingFrozen = false; // Temporarily disables updates during network operations.
+  let lastRenderedHTML = ""; // Caches the last HTML string to optimize DOM diffing.
+  
+  // --- CONFIGURATION ---
+  const POLLING_DELAY = 3500; // Time to wait after a command before resuming polling (Network latency mask).
+  let volumeThrottleTimer = null; // Timer for debouncing main volume inputs.
+  let interactionWatchdog = null; // Safety timer to resume polling if the user stops interacting.
+
+  // ======================================================
+  // 1. LOCK MANAGER (Optimistic UI Handler)
+  // ======================================================
+  // The LockManager creates "Shadow Locks" that override the backend data temporarily.
+  // This ensures the UI feels instant (e.g., Play button turns Green immediately), 
+  // even if the hardware takes 3-5 seconds to report the new state.
+  const LockManager = {
+      locks: {}, 
+      
+      // Sets a lock for a specific device IP and property type (POWER, TRANSPORT, etc).
+      set: function(ip, type, val, expected = null) {
+          this.locks[ip] = { type, val, expected, timestamp: Date.now() };
+          renderSpeakers(true); // Forces an immediate re-render to reflect the user's action.
+      },
+      
+      get: function(ip) { return this.locks[ip]; },
+      
+      // Checks if the backend state has "caught up" to the lock.
+      // If the hardware reports the expected state, the lock is released.
+      check: function(device) {
+          const lock = this.locks[device.ip];
+          if (!lock) return;
+          if (isPollingFrozen) return; 
+
+          // Transport Lock Logic (Play/Pause handling)
+          if (lock.type === 'TRANSPORT' && lock.val === 'PLAY_PAUSE') {
+              const current = device.playStatus; 
+              const expected = lock.expected;    
+              
+              // If the expectation matches reality, release the lock.
+              if (expected === 'NOT_PLAYING') {
+                  if (current === 'PLAY_STATE') delete this.locks[device.ip]; 
+              }
+              else if (expected === 'PLAYING') {
+                  if (current === 'PLAY_STATE') delete this.locks[device.ip];
+              }
+              
+              // Failsafe: Expire locks older than 60s to prevent stuck UI states.
+              if (Date.now() - lock.timestamp > 60000) delete this.locks[device.ip];
+              return;
+          }
+
+          // General Lock Release: If device reports it is "Ready for Display", release.
+          if (device.readyForDisplay) {
+              delete this.locks[device.ip];
+          }
+      }
+  };
+
+  // ======================================================
+  // 2. LOGIC ENGINE (UI Calculation)
+  // ======================================================
+  // Converts raw device data into display-ready properties (classes, disabled states, text).
+  function calculateUi(device) {
+      // Determines if the device is a "Slave" in a multi-room group.
+      const isSlave = (device.zone && device.zone.master && device.zone.master !== device.mac);
+      let masterIp = null;
+      let effectiveDevice = device; 
+      let effectiveLock = LockManager.get(device.ip);
+
+      // If Slave, it attempts to inherit metadata (Art, Artist) from the Master.
+      if (isSlave) {
+          const master = currentDevices.find(d => d.mac === device.zone.master);
+          if (master) {
+              masterIp = master.ip;
+              effectiveDevice = master; // Use Master's data for display
+              // Slave inherits Master's locks if they exist.
+              const masterLock = LockManager.get(master.ip);
+              if (masterLock) effectiveLock = masterLock;
+          }
+      }
+
+      // Initializes the base UI object.
+      let ui = {
+          isStandby: effectiveDevice.isStandby,
+          track: effectiveDevice.track || effectiveDevice.source,
+          artist: effectiveDevice.artist,
+          art: effectiveDevice.art,
+          pwrClass: !effectiveDevice.isStandby ? 'on' : '',
+          
+          playClass: '',
+          
+          prevClass: '', nextClass: '', joinClass: '',
+          presetNum: effectiveDevice.activePreset,
+          
+          playDisabled: true, nextDisabled: true, prevDisabled: true,
+          
+          volDisabled: device.isStandby, 
+          joinDisabled: false, presetDisabled: false
+      };
+
+      // --- NATIVE STATE HANDLING ---
+      // Sets the color of the Play/Pause button based on playback state.
+      if (effectiveDevice.playStatus === 'PLAY_STATE') {
+          ui.playClass = 'btn-active'; // Green (Playing)
+      } else if (effectiveDevice.playStatus === 'PAUSE_STATE') {
+          ui.playClass = 'btn-pending'; // Yellow (Paused)
+      } else {
+          ui.playClass = ''; // Gray (Stopped)
+      }
+
+      // Special handling for Slaves waiting for Master synchronization.
+      if (isSlave && masterIp) {
+          const master = currentDevices.find(d => d.ip === masterIp);
+          if (!master) {
+              ui.track = "Joining..."; ui.artist = ""; ui.art = "";
+          }
+      }
+
+      // Fallback for missing metadata using the ContentItem source.
+      if (effectiveDevice.ContentItem && (effectiveDevice.ContentItem.source === 'Ready' || effectiveDevice.ContentItem.source === 'Paused')) {
+          ui.track = effectiveDevice.ContentItem.source;
+      }
+
+      // --- ENABLE CONTROLS RULE ---
+      // Controls are enabled if the device is Playing OR Paused (virtual state).
+      if ((effectiveDevice.playStatus === 'PLAY_STATE' || effectiveDevice.playStatus === 'PAUSE_STATE') && !effectiveDevice.isStandby) {
+          ui.playDisabled = false;
+          
+          // Prev/Next buttons are disabled while Paused (Bose hardware limitation).
+          if (effectiveDevice.playStatus === 'PAUSE_STATE') {
+              ui.nextDisabled = true; 
+              ui.prevDisabled = true;
+          } else {
+              ui.nextDisabled = false; 
+              ui.prevDisabled = false;
+          }
+      }
+
+      // --- STANDBY RULE ---
+      // If the device is Off, all transport controls are disabled.
+      if (ui.isStandby) {
+          ui.track = "Off"; ui.artist = ""; ui.art = "";           
+          ui.playDisabled = true; ui.nextDisabled = true; ui.prevDisabled = true;
+          ui.volDisabled = true; ui.joinDisabled = false; ui.presetDisabled = false; 
+          ui.presetNum = 0; 
+      }
+
+      // 3. APPLY LOCKS (User Interaction Overrides)
+      // Checks for active locks and forces the UI to match the user's expected state.
+      if (effectiveLock) {
+          if (effectiveLock.type === 'POWER' && effectiveLock.val === 'OFF') {
+              ui.isStandby = true; ui.pwrClass = ''; 
+              ui.playDisabled = true; ui.nextDisabled = true; ui.prevDisabled = true;
+              ui.joinDisabled = false; ui.presetDisabled = false; ui.volDisabled = true; 
+              ui.presetNum = 0;
+              ui.art = ""; ui.track = "Off"; ui.artist = ""; ui.playClass = ''; 
+          }
+          else if (effectiveLock.type === 'POWER' && effectiveLock.val === 'ON') {
+              ui.isStandby = false; ui.pwrClass = 'on'; 
+              ui.playDisabled = true; ui.nextDisabled = true; ui.prevDisabled = true;
+              ui.volDisabled = false; ui.presetNum = 0;
+              ui.art = ""; ui.track = "Ready"; ui.artist = ""; ui.playClass = '';
+          }
+          else if (effectiveLock.type === 'PRESET') {
+              ui.isStandby = false; ui.pwrClass = 'on'; 
+              ui.presetNum = effectiveLock.val; 
+              ui.playDisabled = true; ui.nextDisabled = true; ui.prevDisabled = true;
+              ui.volDisabled = false; 
+              ui.art = ""; ui.track = "Loading..."; ui.artist = ""; ui.playClass = ''; 
+          }
+          else if (effectiveLock.type === 'TRANSPORT') {
+              if (effectiveLock.val === 'PLAY_PAUSE') {
+                   // Optimistic toggling of the Play button color.
+                   if (effectiveLock.expected === 'NOT_PLAYING') {
+                       ui.playClass = 'btn-pending'; // Yellow (Expect Pause)
+                       ui.playDisabled = false;      
+                       ui.nextDisabled = true;       
+                       ui.prevDisabled = true;
+                   } else {
+                       ui.playClass = 'btn-active';  // Green (Expect Play)
+                       ui.playDisabled = false;      
+                       ui.nextDisabled = true; 
+                       ui.prevDisabled = true;
+                   }
+              } else if (effectiveLock.val === 'PREV_TRACK') {
+                   ui.prevClass = 'btn-pending'; ui.playClass = 'btn-pending';
+                   ui.playDisabled = true; ui.nextDisabled = true; ui.prevDisabled = false;
+              } else if (effectiveLock.val === 'NEXT_TRACK') {
+                   ui.nextClass = 'btn-pending'; ui.playClass = 'btn-pending';
+                   ui.playDisabled = true; ui.prevDisabled = true; ui.nextDisabled = false;
+              }
+          }
+          else if (effectiveLock.type === 'JOIN') {
+              ui.isStandby = false; ui.pwrClass = 'on';
+              ui.joinClass = 'btn-master-join'; ui.presetNum = 0; 
+              ui.presetDisabled = false; ui.volDisabled = false; 
+              ui.playDisabled = true; ui.nextDisabled = true; ui.prevDisabled = true; ui.playClass = ''; 
+              ui.art = ""; ui.track = "Joining..."; ui.artist = "";
+          }
+      }
+
+      // Hard override: Slaves effectively have disabled transport controls.
+      if (isSlave) {
+          ui.playDisabled = true; ui.nextDisabled = true; ui.prevDisabled = true;
+          ui.presetDisabled = true;
+      }
+
+      return ui;
+  }
+
+  // ======================================================
+  // 3. RENDER ENGINE (Dynamic Sorting & HTML Generation)
+  // ======================================================
+  function renderSpeakers(force = false) {
+    const container = document.getElementById('app');
+
+    // --- DYNAMIC SORTING ENGINE (v2 - Combined Bottom Tier) ---
+    // Instead of a static list, the system reorders speakers based on activity.
+    
+    // 1. Snapshot Default Order: Captures the original index (from config) to use as a tie-breaker.
+    const devicesWithIndex = currentDevices.map((d, i) => ({ ...d, originalIndex: i }));
+    
+    const roots = [];     // Stores top-level speakers (Masters & Standalone).
+    const slaveMap = {};  // Maps Master IPs to their Slave Devices.
+
+    // 2. Identification Phase: Separates Root devices from Slave devices.
+    devicesWithIndex.forEach(d => {
+        // Checks if device is a slave (Has a master MAC different from its own).
+        const isSlave = (d.zone && d.zone.master && d.zone.master !== d.mac);
+        
+        if (isSlave) {
+            // Finds the Master device record using the Master's MAC.
+            const master = devicesWithIndex.find(m => m.mac === d.zone.master);
+            if (master) {
+                if (!slaveMap[master.ip]) slaveMap[master.ip] = [];
+                slaveMap[master.ip].push(d);
+            } else {
+                // Orphaned slaves are treated as Roots to ensure they remain visible.
+                roots.push(d);
+            }
+        } else {
+            roots.push(d);
+        }
+    });
+
+    // 3. Scoring Phase: Sorts the Root devices based on Priority Tiers.
+    roots.sort((a, b) => {
+        const getScore = (d) => {
+			
+			// Tier 1: Group Master (Top Priority)
+            const isGroupMaster = (slaveMap[d.ip] && slaveMap[d.ip].length > 0);
+            if (isGroupMaster) return 1;
+
+            // Tier 2: Active (Playing, PAUSED, Loading, or Interacting)
+            const isActiveState = (d.playStatus === 'PLAY_STATE' || d.playStatus === 'BUFFERING_STATE' || d.playStatus === 'PAUSE_STATE');
+            const isPlaying = !d.isStandby && isActiveState;
+            
+            const lock = LockManager.get(d.ip);
+
+            // --- FIX: DEMOTE JOINING SPEAKERS ---
+            // If a speaker is currently joining, assign it "Tier 2.5".
+            // ensures it ranks LOWER than a Playing Speaker (Tier 2), preventing
+            // it from jumping to the top of the list during the transition.
+            if (lock && lock.type === 'JOIN') return 2.5;
+
+            const isInteracting = lock && (
+                lock.type === 'PRESET' || 
+                lock.type === 'TRANSPORT' || 
+                (lock.type === 'POWER' && lock.val === 'ON') 
+            );
+			
+			// If it's playing OR are waiting for it to load, keep it at the top.
+            if (isPlaying || isInteracting) return 2;
+            
+            // Tier 3: Everything Else (Bottom)
+            // Includes Stopped, Paused, and Standby (Off).
+            // These will be sorted purely by their default order using the tie-breaker below.
+            return 3; 
+        };
+
+        const scoreA = getScore(a);
+        const scoreB = getScore(b);
+
+        // Primary Sort: Sort by Tier Score (Lower score = higher position).
+        if (scoreA !== scoreB) return scoreA - scoreB;
+        
+        // Secondary Sort: Tie-breaker using the original configuration order.
+        return a.originalIndex - b.originalIndex;
+    });
+
+    // 4. Flattening Phase: Reassembles the list into a single array.
+    const sortedList = [];
+    roots.forEach(root => {
+        sortedList.push(root); // Adds the Root (Master or Standalone).
+        
+        // If this Root is a Master, inject its Slaves immediately below it.
+        if (slaveMap[root.ip]) {
+            // Sorts slaves by default order to keep the group tidy.
+            const slaves = slaveMap[root.ip].sort((x, y) => x.originalIndex - y.originalIndex);
+            sortedList.push(...slaves);
+        }
+    });
+
+    // --- HTML GENERATION ---
+    // Generates the HTML card for each device in the sorted list.
+    const newHTML = sortedList.map(d => {
+		if (!d.online) return `<div class="card" style="min-height: auto; height: fit-content; align-self: start; border-style: dashed; opacity: 0.7;"><div class="header" style="margin-bottom: 0;"><h3>${d.name}</h3><span class="status" style="color: #e74c3c; font-weight: bold;">OFFLINE</span></div></div>`;
+      const ui = calculateUi(d);
+      
+      const isGroupMaster = d.zone && d.zone.master === d.mac;
+      const isGroupMember = d.zone && d.zone.master && !isGroupMaster;
+      let statusText = ui.isStandby ? 'STANDBY' : 'ACTIVE';
+      if (isGroupMaster) statusText = 'MASTER';
+      if (isGroupMember) statusText = 'SLAVE';
+      
+      // Determines visibility of the Sync/Join button.
+      const showSync = !isGroupMaster && !isGroupMember; 
+      const syncText = ui.isStandby ? "Power On & Join" : "Sync to Master";
+
+      // Calculates the group max volume for the Master's group slider.
+      let groupMaxVolume = 0;
+      if (isGroupMaster) {
+          const members = currentDevices.filter(dev => dev.zone && dev.zone.master === d.mac);
+          if (members.length > 0) groupMaxVolume = Math.max(d.volume, ...members.map(m => m.volume));
+      }
+
+      // Event Handlers
+      const clickPrev  = `onmousedown="uiTransport('${d.ip}', 'PREV_TRACK')"`;
+      const clickPlay  = `onmousedown="uiTransport('${d.ip}', 'PLAY_PAUSE')"`;
+      const clickNext  = `onmousedown="uiTransport('${d.ip}', 'NEXT_TRACK')"`;
+      const clickPower = `onmousedown="uiTogglePower('${d.ip}', ${ui.isStandby})"`;
+      const clickSync  = `onmousedown="uiJoinGroup('${d.ip}')"`;
+      
+      const artHtml = ui.art ? `<img src="${ui.art}" class="art">` : `<div class="art art-blank"></div>`;
+      const dis = (val) => val ? 'disabled' : ''; // Utility for HTML attributes
+      const cls = (val) => val ? 'btn-disabled' : ''; // Utility for CSS classes
+
+      return `
+        <div class="card" id="card-${d.ip}">
+          <div class="header"><h3>${d.name} <img src="images/bose_icon.png" style="height:16px; width:auto; opacity:0.8;" alt="Bose"></h3><span class="status ${isGroupMaster || isGroupMember ? 'master' : ''}">${statusText}</span></div>
+          <div class="playing-info ${ui.volDisabled ? 'transitioning-info' : ''}">
+            ${artHtml}
+            <div class="meta"><span class="track">${ui.track}</span><span class="artist">${ui.artist}</span></div>
+          </div>
+          <div class="controls">
+            <button class="btn power ${ui.pwrClass}" ${clickPower}>⏻</button>
+            <button class="btn prev ${ui.prevClass}" ${dis(ui.prevDisabled)} ${clickPrev}>⏮</button>
+            <button class="btn play ${ui.playClass}" ${dis(ui.playDisabled)} ${clickPlay}>⏯</button>
+            <button class="btn next ${ui.nextClass}" ${dis(ui.nextDisabled)} ${clickNext}>⏭</button>
+            ${isGroupMaster ? `<div class="master-badge">GROUP MASTER</div>` : ''}
+            ${showSync ? `<button class="btn join ${ui.joinClass} ${cls(ui.joinDisabled)}" ${clickSync} ${dis(ui.joinDisabled)}>${syncText}</button>` : ''}
+          </div>
+          <div class="presets-row">
+            ${[1,2,3,4,5,6].map(n => {
+                const isActive = (ui.presetNum === n);
+                const pClick = `onmousedown="uiPreset('${d.ip}', ${n})"`;
+                return `<button class="btn-preset ${isActive ? 'active' : ''} ${cls(ui.presetDisabled)}" ${dis(ui.presetDisabled)} ${pClick}>${n}</button>`;
+            }).join('')}
+          </div>
+
+          <div class="slider-container ${cls(ui.volDisabled)}" style="position:relative;">
+            <span style="font-size:0.8em; color:var(--text-secondary)">VOL</span>
+            <span id="bubble-${d.ip}" class="vol-bubble"></span>
+
+            <input type="range" id="vol-${d.ip}" min="0" max="100" value="${d.volume}" ${dis(ui.volDisabled)}
+                   oninput="handleVolumeInput('${d.ip}', this.value, this)" 
+                   onchange="handleVolumeSet('${d.ip}', this.value)"
+                   onmousedown="showBubble('${d.ip}')"
+                   onmouseup="hideBubble('${d.ip}')"
+                   ontouchstart="showBubble('${d.ip}')"
+                   ontouchend="hideBubble('${d.ip}')">
+                   
+            <span id="vol-txt-${d.ip}" style="font-size:0.8em; color:var(--text-secondary); width:25px; text-align:right;">${d.volume}</span>
+          </div>
+
+          ${isGroupMaster && d.zone && d.zone.member ? `
+            <div class="group-label">GROUP VOLUME</div>
+            <div class="slider-container group-slider ${cls(ui.volDisabled)}" style="position:relative;">
+               <span style="font-size:0.8em; color:var(--group)">GRP</span>
+               
+               <span id="bubble-grp-${d.ip}" class="vol-bubble"></span>
+
+               <input type="range" id="grp-${d.ip}" min="0" max="100" value="${groupMaxVolume}" ${dis(ui.volDisabled)}
+                      oninput="handleGroupVolumeInput('${d.ip}', this.value, this)"
+                      onchange="handleGroupVolumeSet('${d.ip}', this.value)"
+                      onmousedown="showGroupBubble('${d.ip}')"
+                      onmouseup="hideGroupBubble('${d.ip}')"
+                      ontouchstart="showGroupBubble('${d.ip}')"
+                      ontouchend="hideGroupBubble('${d.ip}')">
+                      
+               <span id="grp-txt-${d.ip}" style="font-size:0.8em; color:var(--group); width:25px; text-align:right; font-weight:bold;">${groupMaxVolume}</span>
+            </div>` : ''}
+        </div>`;
+    }).join('');
+
+    // --- DOM UPDATE ---
+    // Updates the DOM only if content has changed.
+    // Uses morphdom (if available) to smoothly animate sorting changes without refreshing the whole page.
+    if (force || newHTML !== lastRenderedHTML) {
+        if (typeof morphdom === 'function') {
+            morphdom(container, `<div id="app" class="grid">${newHTML}</div>`);
+        } else {
+            container.innerHTML = newHTML;
+        }
+        lastRenderedHTML = newHTML;
+    }
+  } 
+
+  // --- ACTIONS (User Inputs & Network) ---
+
+  // Fetches latest status from the server and initiates rendering.
+  async function loadStatus() {
+    if (isPollingFrozen) return; // Skips polling if network is busy.
+    if (isUserInteracting) return; // Skips polling if user is dragging a slider.
+
+    try {
+      const res = await fetch('/api/status');
+      const newData = await res.json();
+	// --- SAFE HEALTH CHECK INJECTION ---
+      try {
+          const hRes = await fetch('/api/health');
+          if (hRes.ok) {
+              const h = await hRes.json();
+              const banner = document.getElementById('mass-error-banner');
+              if (banner) {
+                  if (h && h.healthy === false) {
+                      if (banner.style.display !== 'flex') banner.style.display = 'flex';
+                  } else {
+                      banner.style.display = 'none';
+                  }
+              }
+          }
+      } catch(e) { /* completely ignored so it can't crash your UI */ }	  
+	  
+      
+      // Persists old metadata ("Ghosting") if the new data is invalid but locked.
+      if (currentDevices.length > 0) {
+          newData.forEach(newDev => {
+              const oldDev = currentDevices.find(d => d.ip === newDev.ip);
+              const isLocked = LockManager.get(newDev.ip);
+              if (oldDev && isLocked && !newDev.readyForDisplay && !newDev.isStandby) {
+                  newDev.track = oldDev.track;
+                  newDev.artist = oldDev.artist;
+                  newDev.album = oldDev.album;
+                  newDev.art = oldDev.art;
+              }
+          });
+      }
+
+      currentDevices = newData;
+      // Cleans up expired locks if the backend state now matches the expectation.
+      currentDevices.forEach(d => LockManager.check(d));
+      renderSpeakers();
+    } catch (e) { console.error(e); }
+  }
+
+  // Wrapper for sending commands that automatically pauses polling to prevent UI jitter.
+  async function sendCommand(url, body) {
+      isPollingFrozen = true;
+      try {
+          await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+          await new Promise(r => setTimeout(r, POLLING_DELAY));
+      } catch(e) { console.error(e); }
+      finally {
+          isPollingFrozen = false; 
+          loadStatus();
+      }
+  }
+
+  // Handles Power toggle click. Sets an immediate optimistic lock.
+  function uiTogglePower(ip, isCurrentlyStandby) {
+      const targetState = isCurrentlyStandby ? 'ON' : 'OFF';
+      LockManager.set(ip, 'POWER', targetState);
+      sendCommand('/api/key', { ip, key: 'POWER' });
+  }
+
+  // Handles Preset click. Sets optimistic lock to "Loading...".
+  function uiPreset(ip, n) {
+      LockManager.set(ip, 'PRESET', n);
+      sendCommand('/api/key', { ip, key: `PRESET_${n}` });
+  }
+
+  // Handles Transport controls (Play/Pause/Next/Prev).
+  function uiTransport(ip, key) {
+      const device = currentDevices.find(d => d.ip === ip);
+      let expected = null;
+      
+      // Toggles the expected state for Play/Pause button logic.
+      if (key === 'PLAY_PAUSE') {
+          const lock = LockManager.get(ip);
+          // If a lock already exists, toggle the expectation.
+          if (lock && lock.type === 'TRANSPORT' && lock.val === 'PLAY_PAUSE' && lock.expected === 'NOT_PLAYING') {
+              expected = 'PLAYING'; 
+          } 
+          else if (device.playStatus === 'PLAY_STATE') {
+              expected = 'NOT_PLAYING';
+          } else {
+              expected = 'PLAYING';
+          }
+      }
+      LockManager.set(ip, 'TRANSPORT', key, expected);
+      sendCommand('/api/key', { ip, key });
+  }
+
+  // Initiates multi-room grouping.
+  function uiJoinGroup(slaveIp) {
+      LockManager.set(slaveIp, 'JOIN', 'MASTER');
+      sendCommand('/api/join', { slaveIp });
+  } 
+
+  // --- MAIN VOLUME LOGIC ---
+
+  // Shows the bubble indicator above the slider handle.
+  function showBubble(ip) {
+      const bubble = document.getElementById(`bubble-${ip}`);
+      const el = document.getElementById(`vol-${ip}`);
+      if (bubble && el) {
+          const percent = (el.value - el.min) / (el.max - el.min);
+          const thumbWidth = 15;
+          const trackWidth = el.offsetWidth - thumbWidth;
+          const newLeft = el.offsetLeft + (percent * trackWidth) + (thumbWidth / 2); 
+          
+          bubble.style.left = `${newLeft}px`;
+          bubble.innerText = el.value;
+          bubble.classList.add('visible');
+      }
+  }
+
+  function hideBubble(ip) {
+      const bubble = document.getElementById(`bubble-${ip}`);
+      if (bubble) bubble.classList.remove('visible');
+  }
+
+  // Handles live dragging of the volume slider.
+  function handleVolumeInput(ip, value, el) {
+      isUserInteracting = true; // Pauses polling while dragging.
+      if (interactionWatchdog) clearTimeout(interactionWatchdog);
+      
+      // Sets a watchdog to resume polling if the user stops dragging but forgets to release.
+      interactionWatchdog = setTimeout(() => { isUserInteracting = false; loadStatus(); }, 4000);
+
+      // Updates text and bubble position immediately.
+      const txt = document.getElementById(`vol-txt-${ip}`);
+      if (txt) txt.innerText = value;
+
+      const bubble = document.getElementById(`bubble-${ip}`);
+      if (bubble && el) {
+          bubble.innerText = value;
+          const percent = (value - el.min) / (el.max - el.min);
+          const thumbWidth = 15;
+          const trackWidth = el.offsetWidth - thumbWidth;
+          const newLeft = el.offsetLeft + (percent * trackWidth) + (thumbWidth / 2); 
+          bubble.style.left = `${newLeft}px`;
+      }
+
+      // Throttles network requests to 150ms to prevent flooding the hardware.
+      if (!volumeThrottleTimer) {
+          volumeThrottleTimer = setTimeout(() => {
+              fetch('/api/volume', { 
+                  method: 'POST', 
+                  headers: { 'Content-Type': 'application/json' }, 
+                  body: JSON.stringify({ ip, value }) 
+              });
+              volumeThrottleTimer = null;
+          }, 150);
+      }
+  }
+
+  // Handles the "mouse up" or "touch end" event (Final value commit).
+  async function handleVolumeSet(ip, value) {
+      if (volumeThrottleTimer) clearTimeout(volumeThrottleTimer);
+      if (interactionWatchdog) clearTimeout(interactionWatchdog); 
+      volumeThrottleTimer = null;
+      interactionWatchdog = null;
+
+      await fetch('/api/volume', { 
+          method: 'POST', 
+          headers: { 'Content-Type': 'application/json' }, 
+          body: JSON.stringify({ ip, value }) 
+      });
+      
+      // Delays resuming polling to allow hardware to apply changes.
+      setTimeout(() => { isUserInteracting = false; loadStatus(); }, 2200);
+  }
+
+  // --- GROUP VOLUME LOGIC (Relative / Delta Volume) ---
+  // Tracks the start value of the group slider to calculate relative changes (+/-).
+  
+  let groupStates = {}; 
+
+  function showGroupBubble(ip) {
+      const bubble = document.getElementById(`bubble-grp-${ip}`);
+      const el = document.getElementById(`grp-${ip}`);
+      if (bubble && el) {
+          const percent = (el.value - el.min) / (el.max - el.min);
+          const thumbWidth = 15;
+          const trackWidth = el.offsetWidth - thumbWidth;
+          const newLeft = el.offsetLeft + (percent * trackWidth) + (thumbWidth / 2); 
+          
+          bubble.style.left = `${newLeft}px`;
+          bubble.innerText = el.value;
+          bubble.classList.add('visible');
+
+          // Initialize state on touch start to establish a baseline for delta calculation.
+          if (!groupStates[ip]) {
+              groupStates[ip] = { lastRef: parseInt(el.value), timer: null }; 
+          }
+      }
+  }
+
+  function hideGroupBubble(ip) {
+      const bubble = document.getElementById(`bubble-grp-${ip}`);
+      if (bubble) bubble.classList.remove('visible');
+  }
+
+  function handleGroupVolumeInput(ip, newValue, el) {
+      // 1. WATCHDOG: Keeps polling paused while dragging.
+      isUserInteracting = true; 
+      if (interactionWatchdog) clearTimeout(interactionWatchdog);
+      interactionWatchdog = setTimeout(() => { isUserInteracting = false; loadStatus(); }, 4000);
+
+      const val = parseInt(newValue);
+
+      // 2. Instant Visual Update (Text & Bubble).
+      const txt = document.getElementById(`grp-txt-${ip}`);
+      if (txt) txt.innerText = val;
+
+      const bubble = document.getElementById(`bubble-grp-${ip}`);
+      if (bubble && el) {
+          bubble.innerText = val;
+          const percent = (val - el.min) / (el.max - el.min);
+          const thumbWidth = 15;
+          const trackWidth = el.offsetWidth - thumbWidth;
+          const newLeft = el.offsetLeft + (percent * trackWidth) + (thumbWidth / 2); 
+          bubble.style.left = `${newLeft}px`;
+      }
+
+      // 3. Initialize Start State (Safety check).
+      if (!groupStates[ip]) {
+          groupStates[ip] = { lastRef: val, timer: null }; 
+          return; 
+      }
+
+      // 4. Throttled Network Request (Delta Calculation).
+      const state = groupStates[ip];
+      
+      if (!state.timer) {
+          state.timer = setTimeout(() => {
+              const delta = val - state.lastRef; // Calculates difference since last send.
+              if (delta !== 0) {
+                  // Sends relative change (+/-) to the backend API.
+                  fetch('/api/zone_volume', { 
+                      method: 'POST', 
+                      headers: { 'Content-Type': 'application/json' }, 
+                      body: JSON.stringify({ masterIp: ip, delta: delta }) 
+                  });
+                  state.lastRef = val; // Updates baseline.
+              }
+              state.timer = null;
+          }, 150); // 150ms throttle.
+      }
+  }
+
+  async function handleGroupVolumeSet(ip, newValue) {
+      // Final Commit on Release.
+      if (interactionWatchdog) clearTimeout(interactionWatchdog); 
+      interactionWatchdog = null;
+      
+      const state = groupStates[ip];
+      const val = parseInt(newValue);
+
+      if (state && state.timer) clearTimeout(state.timer);
+
+      // Sends any remaining delta that wasn't caught by the throttle.
+      if (state) {
+          const delta = val - state.lastRef;
+          if (delta !== 0) {
+              await fetch('/api/zone_volume', { 
+                  method: 'POST', 
+                  headers: { 'Content-Type': 'application/json' }, 
+                  body: JSON.stringify({ masterIp: ip, delta: delta }) 
+              });
+          }
+          delete groupStates[ip]; // Resets state after release.
+      }
+
+      // Resume Polling.
+      setTimeout(() => { isUserInteracting = false; loadStatus(); }, 2200);
+  }
+
+  // Initial Load and Interval Setup
+  loadStatus();
+  setInterval(loadStatus, 2000); 
+  console.log("Bose Hybrid Controller - BACKEND-DRIVEN PAUSE");
+</script>
+</body>
+</html>

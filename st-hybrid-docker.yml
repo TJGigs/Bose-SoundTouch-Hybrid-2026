@@ -1,0 +1,29 @@
+version: '3'
+services:
+  bose-soundtouch-hybrid:
+    image: node:18-alpine
+    container_name: bose-soundtouch-hybrid
+    working_dir: /app
+    
+    # "host" mode lets the container see Localhost (127.0.0.1)
+    # and binds directly to the APP_PORT defined in the .env file
+    network_mode: "host"
+    
+    # -------------------------------------------------------------------------
+    # IMPORTANT: CONFIGURE YOUR VOLUME PATH!
+    # You MUST change the left side of the colon below (/share/Container/...) 
+    # to the actual absolute path where you saved this folder on your NAS/server.
+    # -------------------------------------------------------------------------
+    volumes:
+      - /share/Container/bose-soundtouch-hybrid:/app
+      - /etc/localtime:/etc/localtime:ro
+      
+    # Tells Docker to pass everything in the .env file straight into the container
+    env_file:
+      - .env
+      
+    # Standard startup command
+    # 'npm install' ensures new packages like ssh2 are added automatically
+    command: "sh -c 'npm install && npm start'"
+    
+    restart: unless-stopped

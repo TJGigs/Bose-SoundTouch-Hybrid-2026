@@ -1,0 +1,13 @@
+version: '3.9'
+services:
+  music_assistant:
+    image: ghcr.io/music-assistant/server:stable
+    container_name: bose-mass
+    restart: unless-stopped
+    network_mode: host                       # <--- Host Mode (Fixes the IP Address)
+    volumes:
+      - /share/Multimedia/mass_data:/data    # <--- Keeps your Data safe
+      - /share/Multimedia/Music:/music
+    environment:
+      - TZ=America/Los_Angeles
+      - LOG_LEVEL=INFO
