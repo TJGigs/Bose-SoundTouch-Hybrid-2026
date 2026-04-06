@@ -1,4 +1,3 @@
-version: '3'
 services:
   bose-soundtouch-hybrid:
     image: node:18-alpine
@@ -20,7 +19,7 @@ services:
       
     # Tells Docker to pass everything in the .env file straight into the container
     env_file:
-      - .env
+      - /share/Container/bose-soundtouch-hybrid/.env
       
     # Standard startup command
     # 'npm install' ensures new packages like ssh2 are added automatically
