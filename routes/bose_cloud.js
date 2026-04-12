@@ -281,7 +281,7 @@ router.delete('/streaming/account/:id/device/:deviceId', (req, res) => {
 // WHY: Drops undocumented internal metrics pings to save speaker bandwidth.
 router.post('/v1/scmudc/*', (req, res) => {
     console.log(`[Bose Cloud] 🗑️ Dropped SCM UDC Telemetry ping from ${getIp(req)}`);
-    res.status(200).send("OK");
+    res.status(200).json({ nextReportIn: 86400 });
 });
 
 // WHAT: Firmware Update Trap
