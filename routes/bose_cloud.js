@@ -281,7 +281,9 @@ router.delete('/streaming/account/:id/device/:deviceId', (req, res) => {
 // WHY: Drops undocumented internal metrics pings to save speaker bandwidth.
 router.post('/v1/scmudc/*', (req, res) => {
     console.log(`[Bose Cloud] 🗑️ Dropped SCM UDC Telemetry ping from ${getIp(req)}`);
-    res.status(200).json({ nextReportIn: 86400 });
+	// Force the exact header like done for BMX Registry
+    res.set('Content-Type', 'application/json');
+    res.status(200).send('{"nextReportIn": 86400}');
 });
 
 // WHAT: Firmware Update Trap
@@ -307,6 +309,25 @@ router.put('/streaming/account/:id/device/:deviceId', (req, res) => {
     const reqIp = getIp(req);
     console.log(`[Bose Cloud] 📝 Acknowledged Cloud Sync (Rename/Update) from ${reqIp}`);
     res.send('<?xml version="1.0" encoding="UTF-8" ?><status>success</status>');
+});
+
+// WHAT: Device Group Trap
+// WHY: Speaker asks if it's in a stereo pair. Return an empty group to satisfy the parser.
+router.get('/streaming/account/:id/device/:deviceId/group/', (req, res) => {
+    res.send('<?xml version="1.0" encoding="UTF-8" standalone="yes"?><group/>');
+});
+
+// WHAT: Presets Fetch Trap
+// WHY: Speaker occasionally asks for presets directly. Return an empty shell 
+// since the /full account profile already injects the real hybrid ones.
+router.get('/streaming/account/:id/device/:deviceId/presets', (req, res) => {
+    res.send('<?xml version="1.0" encoding="UTF-8" standalone="yes"?><presets/>');
+});
+
+// WHAT: True Firmware Update Trap
+// WHY: Matches the actual UberBose spec path so the speaker doesn't parse a 404 HTML error.
+router.get('/streaming/software/update/account/:id', (req, res) => {
+    res.send('<?xml version="1.0" encoding="UTF-8" standalone="yes"?><software_update><softwareUpdateLocation></softwareUpdateLocation></software_update>');
 });
 
 // ============================================================================
