@@ -165,6 +165,14 @@ async function get(device) {
             if (isStandby) {
                 mass.setPresetMemory(device.ip, 0);
                 delete LAST_METADATA[device.ip];
+				
+				// --- GHOST WAKE KILL-SWITCH ---
+                // If speaker was ON last poll, but OFF now, physical off button was pressed.
+                // Explicitly halt MA to prevent its auto-recovery from waking the speaker back up.
+                if (LAST_VALID_STATE[device.ip] && LAST_VALID_STATE[device.ip].isStandby === false) {
+                    console.log(`[DeviceState] 🛑 Physical Power-Off detected for ${device.ip}. Forcing MASS to stop...`);
+                    mass.stop(device.ip).catch(err => console.log(`[DeviceState] MASS Stop Error: ${err.message}`));
+                }
                 
                 // --- FIX 1: PRESERVE JOIN LOCKS ---
                 // If in middle of a JOIN operation, the speaker MUST reboot.
