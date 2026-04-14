@@ -165,16 +165,24 @@ async function get(device) {
             if (isStandby) {
                 mass.setPresetMemory(device.ip, 0);
                 delete LAST_METADATA[device.ip];
-				
 				// --- GHOST WAKE KILL-SWITCH ---
-                // If speaker was ON last poll, but OFF now, physical off button was pressed.
-                // Explicitly halt MA to prevent its auto-recovery from waking the speaker back up.
+                // When physical power button is pressed the speaker drops the audio stream and send a UDP Multicast "Standby"
+				//	broadcast to the network. Issue found that on some networks (like Ubiquiti)	this UDP packet
+				// is often swallowed (IGMP Snooping). Because MA never gets this it assumes the TCP stream merely glitched
+				// and its UPnP auto-recovery loop forces the speaker to wake right back up (The "Zombie" stream issue #8).				
+	            // Explicitly halt MA to prevent its auto-recovery from waking the speaker back up.
                 if (LAST_VALID_STATE[device.ip] && LAST_VALID_STATE[device.ip].isStandby === false) {
+					// --- ANTI-LOOP LOCK ---
+                    // Instantly update the local state before firing the external HTTP requests below to prevent
+					// asynchronous overlapping "Burst Mode" polls hitting this block multiple times, and causing infinite loops.
+                    LAST_VALID_STATE[device.ip].isStandby = true;
                     console.log(`[DeviceState] 🛑 Physical Power-Off detected for ${device.ip}. Forcing MASS to stop...`);
                     mass.stop(device.ip).catch(err => console.log(`[DeviceState] MASS Stop Error: ${err.message}`));
+					// explicitly delete MA queue so it doesn't try to wake speaker.
+                    mass.clearQueue(device.ip).catch(err => console.log(`[DeviceState] MASS Clear Queue Error: ${err.message}`));
                 }
                 
-                // --- FIX 1: PRESERVE JOIN LOCKS ---
+                // --- PRESERVE JOIN LOCKS ---
                 // If in middle of a JOIN operation, the speaker MUST reboot.
                 // so preserve the lock so the UI knows to say "Joining..." instead of "Off".
                 const currentLock = SHADOWS[device.ip];
@@ -205,7 +213,7 @@ async function get(device) {
                         // else use MA data if the speaker is sending "junk" (e.g. "AirPlay" or empty).
                         const keepNativeMeta = (source === 'AIRPLAY' && !isBadMeta(track));
 						if (!keepNativeMeta) {
-                        // --- UI FIX: SOURCE OF TRUTH OVERRIDE ---
+                        // --- SOURCE OF TRUTH OVERRIDE ---
                         // If MA says IDLE, force STOP, regardless of what the speaker is doing (buffering/UPnP/etc)
                         // UNLESS recovering from a timeout glitch.
 							if ((maData.state === 'idle' || maData.state === 'stopped') && !mass.isRecovering(device.ip)) {
