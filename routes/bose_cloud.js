@@ -280,10 +280,9 @@ router.delete('/streaming/account/:id/device/:deviceId', (req, res) => {
 // WHAT: SCM UDC Telemetry Trap
 // WHY: Drops undocumented internal metrics pings to save speaker bandwidth.
 router.post('/v1/scmudc/*', (req, res) => {
-    console.log(`[Bose Cloud] 🗑️ Dropped SCM UDC Telemetry ping from ${getIp(req)}`);
-	// Force the exact header like done for BMX Registry
-    res.set('Content-Type', 'application/json');
-    res.status(200).send('{"nextReportIn": 86400}');
+    // Muted to prevent spam on networks (like Ubiquiti issue #8) that cause the speaker to retry loops
+    // console.log(`[Bose Cloud] 🗑️ Dropped SCM UDC Telemetry ping from ${getIp(req)}`);
+    res.status(200).send();
 });
 
 // WHAT: Firmware Update Trap

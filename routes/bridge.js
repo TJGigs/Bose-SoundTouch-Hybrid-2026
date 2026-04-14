@@ -10,8 +10,11 @@ const SILENT_MP3_BUFFER = Buffer.from(SILENT_MP3_B64, 'base64');
 const utils = require('./utils'); 
 
 router.use((req, res, next) => {
-    // This part hides the "noise" from the UI poller
-    if (req.url.includes('/api/health') || req.url.includes('/api/status')) {
+    // This part hides the "noise" from the UI poller AND background telemetry traps
+    if (req.url.includes('/api/health') || 
+        req.url.includes('/api/status') || 
+        req.url.includes('/v1/scmudc') || 
+        req.url.includes('/events')) {
         return next();
     }
 
