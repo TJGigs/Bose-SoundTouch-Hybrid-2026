@@ -1,4 +1,4 @@
-require('dotenv').config(); // Load environment variables
+require('dotenv').config({ override: true }); // Load and overwrite existing env vars
 const express = require('express');
 const bodyParser = require('body-parser');
 const axios = require('axios');
