@@ -135,7 +135,8 @@ Before proceeding with the instructions below, please do the following:
    * NAS/GUI: Import the `bose-soundtouch-hybrid.yml` file into your container manager (like Container Station or Portainer) and deploy.
    * Command Line: Navigate to your folder and run: `docker compose -f bose-soundtouch-hybrid.yml up -d`
    * Note: The container will download the image, create the necessary configuration files in your folder, and then pause waiting for you to fill them out.
-   * <img width="686" height="191" alt="start1" src="https://github.com/user-attachments/assets/4e88e5ff-9e97-4701-bdb8-ce33a03e9b88" />
+   * <img width="686" height="191" alt="image" src="https://github.com/user-attachments/assets/f1727099-a2f4-4b94-b884-3a25cb13900c" />
+
 
   
 4. **Configure Your Environment & Speakers:** Navigate to your `bose-soundtouch-hybrid` folder on your server. You will see the automatically generated `.env` and `speakers.json` files.
