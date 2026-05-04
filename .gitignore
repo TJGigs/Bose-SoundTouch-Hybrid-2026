@@ -1,0 +1,16 @@
+# --- Dependencies ---
+node_modules/
+
+# --- Secrets & Private Configs ---
+.env
+
+# --- Junk & Backups ---
+testscripts/
+.DS_Store
+Thumbs.db
+misc/
+
+# --- Logs ---
+logs/
+npm-debug.log
+*.log

@@ -1,0 +1,1066 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <title>Bose SoundTouch Library Manager</title>
+  <link rel="icon" type="image/png" href="images/hybrid_icon.png"> 
+  <link rel="stylesheet" href="style.css">
+  <link rel="manifest" href="manifest.json">
+  <script src="global_ui.js"></script>
+</head>
+<body>
+
+<div class="container">
+  <div class="global-nav">
+    <div style="font-weight:700; color:var(--title-color); font-size:1.1em; display:flex; align-items:center; gap:12px; white-space:nowrap; min-width:250px;">
+		<img src="images/hybrid_icon.png" style="height:32px; width:auto;" alt="Logo">
+		Bose SoundTouch Hybrid
+	</div>
+    
+	<div class="nav-center-group">
+        <div class="global-link" onclick="window.location.href='/control.html'" style="cursor:pointer;">Remote Control</div>
+        <div class="global-link active" onclick="window.location.href='/manager.html'" style="cursor:pointer;">Library Manager</div>
+        <div class="global-link" onclick="window.location.href='/admin.html'" style="cursor:pointer;">Speaker Admin</div>
+    </div>
+    
+    <div class="speaker-selector-container">
+        <span class="speaker-label" id="play-on-label">Play On:</span>
+        <select id="global-speaker" onchange="handleSpeakerChange()">
+            <option value="">Loading...</option>
+        </select>
+    </div>
+  </div>
+
+  <div class="top-bar">
+	<h2 style="margin:0; font-size:1.4em; color:var(--title-color); display:flex; align-items:center; gap:12px; flex-wrap:wrap; justify-content:center;">
+        SoundTouch Library 
+        <span style="font-size:0.6em; color:#888; text-transform:uppercase; letter-spacing:1px; margin-top:4px;">via</span> 
+        <img src="images/ma_logo.png" style="height:28px; width:auto;" alt="MA">
+    </h2>
+    
+    <div class="nav-tabs manager-main-tabs">
+      <button class="nav-btn active" data-tab="library" onclick="switchTab('library')">
+          My Library
+          <img src="images/bose_icon.png" style="height:14px; width:auto; opacity:0.8;">
+      </button>
+      
+      <button class="nav-btn" data-tab="nowplaying" onclick="switchTab('nowplaying')">
+          Now Playing
+          <span style="font-size:1.2em;">🎵</span>
+      </button>
+
+      <button class="nav-btn" data-tab="recents" onclick="switchTab('recents')">
+          Recents
+          <img src="images/hybrid_icon.png" style="height:14px; width:auto; opacity:0.8;">
+      </button>
+      
+      <button class="nav-btn" data-tab="search" onclick="switchTab('search')">
+          Search 
+          <img src="images/ma_icon.png" style="height:14px; width:auto; opacity:0.8;">
+      </button>
+	  
+	  <button class="nav-btn" data-tab="custom" onclick="switchTab('custom')">
+          Custom &#127760;
+      </button>
+    </div>
+  </div>
+
+  <div id="tab-library">
+	<div class="section-title" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
+        <span style="white-space:nowrap;">Physical Presets</span>
+        <select id="preset-view-filter" class="mini-select" onchange="loadLibrary()">
+            <option value="">Global (Default)</option>
+        </select>
+    </div>
+    <div id="lib-presets" class="grid">Loading...</div>
+	
+<div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 15px; padding: 10px; background: var(--card); border-radius: 8px; border: 1px solid var(--border);">
+        <div class="section-title" style="margin: 0; padding: 0; border: none; display: flex; align-items: baseline; gap: 6px; white-space: nowrap;">
+            <span>FAVORITES</span>
+            <span style="font-size: 0.75em; color: var(--text-secondary);">(UNASSIGNED TO GLOBAL PRESETS)</span>
+        </div>
+        
+        <div class="fav-controls">
+            <div class="filter-pill fav-pill active" onclick="setFavFilter('all')">All</div>
+            <div class="filter-pill fav-pill" onclick="setFavFilter('playlist')">Playlists</div>
+            <div class="filter-pill fav-pill" onclick="setFavFilter('artist')">Artists</div>
+            <div class="filter-pill fav-pill" onclick="setFavFilter('album')">Albums</div>
+            <div class="filter-pill fav-pill" onclick="setFavFilter('track')">Tracks</div>
+            <div class="filter-pill fav-pill" onclick="setFavFilter('radio')">Stations</div>
+            
+            <select id="fav-provider-filter" class="mini-select" style="max-width: 140px; background-color: var(--bg);" onchange="loadLibrary()">
+                <option value="all">All Providers</option>
+            </select>
+        </div>
+    </div>
+
+    <div id="lib-favorites" class="grid">Loading...</div>
+  </div>
+
+  <div id="tab-nowplaying" style="display:none">
+      <div class="np-view">
+          <div class="np-card">
+              <img id="np-img" src="" class="np-art" style="display:none;" onerror="this.style.display='none'">
+              <div id="np-track" class="np-track">Loading...</div>
+              <div id="np-artist" class="np-artist">---</div>
+              <div id="np-album" class="np-album">---</div>
+              <div id="np-status" class="np-status-badge">CONNECTING</div>
+          </div>
+      </div>
+  </div>
+
+  <div id="tab-recents" style="display:none">
+    <div class="section-title">Recently Played from Music Assistant</div>
+    <div id="recents-results" class="grid">Loading...</div>
+  </div>
+
+  <div id="tab-search" style="display:none">
+    <div class="search-header">
+	<div class="source-row" id="dynamic-source-row"></div>
+      <div class="filter-row" id="filter-row">
+        <div class="filter-pill active" onclick="setFilter('playlist')">Playlists</div>
+        <div class="filter-pill" onclick="setFilter('artist')">Artists</div>
+        <div class="filter-pill" onclick="setFilter('album')">Albums</div>
+        <div class="filter-pill" onclick="setFilter('track')">Tracks</div>
+		<div class="filter-pill" id="filter-stations" onclick="setFilter('radio')">Stations</div>
+        <div class="filter-pill" onclick="setFilter('all')">All</div>
+		<select id="provider-filter" class="mini-select" style="margin-left:auto; display:none; max-width:160px; background-color:var(--card);" onchange="doSearch()">
+            <option value="all">All Providers</option>
+        </select>		
+      </div>
+      <div class="search-bar">
+        <input type="text" id="q" placeholder="Search..." onkeydown="if(event.key==='Enter') doSearch()">
+        <select id="limit" onchange="doSearch()">
+            <option value="100" selected>100</option>
+            <option value="500">500</option>
+            <option value="1000">1000</option>
+        </select>
+        <button class="primary" onclick="doSearch()">Go</button>
+      </div>
+    </div>
+    <div id="search-results" class="grid"></div>
+  </div>
+  
+<div id="tab-custom" style="display:none">
+      <div class="card" style="margin-bottom: 20px; border-left: 3px solid #2ecc71;">
+          <h3 style="margin-top:0;">&#127760; Stream Custom URL</h3>
+          <div class="sub-head" style="margin-bottom:15px;">Inject a radio stream or file directly to a speaker.</div>
+          
+          <div style="display:flex; flex-wrap:wrap; gap:15px; align-items:flex-end;">
+              <div style="flex: 2; min-width: 200px;">
+                  <label style="display:block; font-size:0.75em; color:var(--text); opacity:0.8; margin-bottom:5px;">STREAM URL</label>
+                  <input type="text" id="stream-url" placeholder="http://stream.radioparadise.com/aac-320" style="width:100%; box-sizing:border-box; background:var(--bg-color); color:var(--text); border:1px solid #777; padding:8px; border-radius:4px;">
+              </div>
+              <div style="flex: 1; min-width: 150px;">
+                  <label style="display:block; font-size:0.75em; color:var(--text); opacity:0.8; margin-bottom:5px;">STATION NAME</label>
+                  <input type="text" id="stream-name" placeholder="Custom Station" style="width:100%; box-sizing:border-box; background:var(--bg-color); color:var(--text); border:1px solid #777; padding:8px; border-radius:4px;">
+              </div>
+              <div style="flex-shrink: 0; padding-bottom: 1px;">
+				<button class="btn primary" onclick="playCustomStream()" style="padding: 9px 20px; margin: 0;">▶ STREAM NOW</button>
+              </div>
+          </div>
+      </div>
+      
+      <div class="section-title">Recent Unsaved Streams</div>
+      <div id="custom-history-results" class="grid">Loading...</div>
+  </div>
+</div>
+
+<div id="modal" class="modal">
+  <div class="modal-content">
+    <h3 style="margin-top:0;">Save to Library</h3>
+    
+    <input type="hidden" id="edit-uuid">
+    <input type="hidden" id="edit-uri">
+    <input type="hidden" id="edit-image">
+    <input type="hidden" id="edit-type">
+    <input type="hidden" id="edit-subtitle">
+	<input type="hidden" id="edit-provider"> 
+    
+    <div class="form-group">
+      <label>Name</label>
+      <input type="text" id="edit-name">
+    </div>
+    
+    <div class="form-group">
+      <label>Assign to Slot</label>
+      <select id="edit-slot" onchange="toggleSpeakerDropdown(this.value)">
+          <option value="0">None (Favorite Only)</option>
+          <option value="1">Preset 1</option><option value="2">Preset 2</option><option value="3">Preset 3</option>
+          <option value="4">Preset 4</option><option value="5">Preset 5</option><option value="6">Preset 6</option>
+      </select>
+    </div>
+    
+    <div class="form-group" id="group-edit-speaker">
+      <label id="label-edit-speaker">Target Speaker</label>
+      <select id="edit-speaker" class="mini-select" style="width: 100%;">
+          <option value="">Global (All Speakers)</option>
+      </select>
+    </div>
+    
+    <label style="margin-top:15px; display:block; margin-bottom:5px;">Playback Options</label>
+    
+    <div class="inner-panel" style="margin-bottom:20px;">
+        <div class="check-row" id="row-shuffle" style="margin-bottom:10px;">
+            <input type="checkbox" id="edit-shuffle"> 
+            <label style="display:inline; margin-left:8px;">Shuffle</label>
+        </div>
+        <div class="form-group" style="margin-bottom:0;">
+            <label>Repeat</label>
+            <select id="edit-repeat"><option value="off">Off</option><option value="all">Repeat All</option><option value="one">Repeat One</option></select>
+        </div>
+    </div>
+    
+    <div style="display:flex; justify-content:flex-end; gap:10px">
+      <button class="btn-sm" onclick="closeModal()">Cancel</button>
+      <button class="primary" onclick="saveItem()">Save</button>
+    </div>
+  </div>
+</div>
+
+<div id="speaker-modal" class="modal">
+    <div class="modal-content" style="width: 300px; text-align: center;">
+        <h3 style="margin-top:0;">Play on Speaker</h3>
+        <div id="speaker-list" style="display:flex; flex-direction:column; gap:10px; margin-top:15px;"></div>
+        <button class="btn" style="margin-top:15px; width:100%; border:1px solid #444;" onclick="closeSpeakerModal()">Cancel</button>
+    </div>
+</div>
+
+<script>
+  // --- CONSTANTS & CONFIG ---
+  
+  // State management for the current view and search filters
+  let globalProviders = [];  
+  let state = { source: 'spotify', filter: 'playlist', tab: 'library', favFilter: 'all' }; 
+  let selectedUuid = null;
+  let npInterval = null;
+  
+  // --- THEME MANAGEMENT ---
+  // Applies the theme immediately to prevent flash of unstyled content
+  function applyTheme() {
+      const saved = localStorage.getItem('theme');
+      if (saved === 'light') document.body.classList.add('light-mode');
+      else document.body.classList.remove('light-mode');
+  } 
+  applyTheme();
+  // Listens for theme changes in other tabs to sync immediately.
+  window.addEventListener('storage', (e) => { if (e.key === 'theme') applyTheme(); });
+
+  // --- INITIALIZATION ---
+  window.onload = function() { 
+      buildSearchMenu();
+	  loadProviders().then(() => loadLibrary()); // <-- NEW: Load providers BEFORE library	  
+      fetchSpeakers(); 
+  }
+  
+async function loadProviders() {
+      const data = await api('/api/manager/providers');
+      if (Array.isArray(data)) globalProviders = data;
+
+      // Populate Search Dropdown (Show all available MA providers)
+      const select = document.getElementById('provider-filter');
+      if (select && globalProviders.length > 0) {
+          let html = '<option value="all">All Providers</option>';
+          globalProviders.forEach(p => {
+              html += `<option value="${p.domain}">${p.name}</option>`;
+          });
+          select.innerHTML = html;
+      }
+  }
+
+
+  function setFavFilter(f) {
+      state.favFilter = f;
+      document.querySelectorAll('.fav-pill').forEach(b => b.classList.remove('active'));
+      const btn = document.querySelector(`.fav-pill[onclick="setFavFilter('${f}')"]`);
+      if(btn) btn.classList.add('active');
+      loadLibrary(); // Re-render favorites
+  }  
+  
+  
+// --- DYNAMIC SEARCH MENU LOGIC ---
+  const SOURCE_BUTTON_TEMPLATES = {
+      'spotify': `<button class="source-btn" onclick="setSource('spotify')"><img src="images/spotify_icon.png" alt="Spotify"> Spotify</button>`,
+      'radio': `<button class="source-btn" onclick="setSource('radio')"><img src="images/TuneIn_icon.png" alt="Radio"> Radio</button>`,
+      'nas': `<button class="source-btn" onclick="setSource('nas')"><img src="images/nas_icon.png" alt="NAS"> Local NAS</button>`,
+      'global': `<button class="source-btn" onclick="setSource('global')"><span style="font-size:1.2em;">🌍</span> Global</button>`
+  };
+
+  function buildSearchMenu() {
+      // 1. Check local storage for user preference
+      const savedOrder = localStorage.getItem('bose_search_order');
+      const order = savedOrder ? JSON.parse(savedOrder) : ['global','radio', 'nas','spotify' ]; // Your correct default
+
+      const container = document.getElementById('dynamic-source-row');
+      let html = '';
+
+      // 2. Build the HTML string based on the array order
+      order.forEach(sourceKey => {
+          if (SOURCE_BUTTON_TEMPLATES[sourceKey]) {
+              html += SOURCE_BUTTON_TEMPLATES[sourceKey];
+          }
+      });
+
+      // 3. Inject it into the page
+      container.innerHTML = html;
+
+      // 4. Automatically highlight the first item in the list
+      if (order.length > 0) {
+          setSource(order[0]); 
+      }
+  }
+
+  // --- API WRAPPER ---
+  // Simplifies fetch calls and error handling across the application.
+  // This reduces code duplication significantly.
+  async function api(url, options = {}) {
+      try {
+          const res = await fetch(url, {
+              headers: { 'Content-Type': 'application/json' },
+              ...options
+          });
+          return await res.json();
+      } catch (e) {
+          console.error("API Error:", e);
+          return { error: e.message };
+      }
+  }
+
+  // --- CORE LOGIC: SPEAKER SELECTION ---
+  // Fetches speakers from Mass and Status endpoints.
+  // Sorts based on backend confign order (speakers.json).
+  // Implements logic to Auto-Select a playing speaker (Priority A/B/C).
+// --- CORE LOGIC: SPEAKER SELECTION ---
+ async function fetchSpeakers() {
+      const select = document.getElementById('global-speaker');
+      try {
+          const [maPlayers, stDevices] = await Promise.all([
+              api('/api/manager/players'),
+              api('/api/status')
+          ]);
+
+          if(!stDevices || !stDevices.length) { select.innerHTML = '<option value="">No Speakers</option>'; return; }
+          
+          // 1. OUTER JOIN: Uses stDevices (speakers.json) as the master list.
+          const options = stDevices.map(d => {
+              const p = maPlayers ? maPlayers.find(mp => mp.ip === d.ip) : null;
+              
+              const isPlaying = (d.playStatus === 'PLAY_STATE' || d.playStatus === 'BUFFERING_STATE');
+              const isOffline = !d.online;
+              const isMissingFromMass = !p; 
+              
+              let icon = '';
+              let colorClass = '';
+              
+              // Determine Icons & Classes
+              if (isOffline) {
+                  icon = ' 🔴';
+                  colorClass = 'class="status-offline"'; 
+              } else if (isMissingFromMass) {
+                  icon = ' 🔇'; 
+                  colorClass = 'class="status-missing"'; 
+              } else if (isPlaying) {
+                  icon = ' 🎵';
+              }
+              
+              const finalLabel = `${d.name}${icon}`;
+              
+              // --- THE FILTERS ---
+              const playDisabledAttr = (isOffline || isMissingFromMass) ? `disabled ${colorClass}` : '';
+              const playValue = p ? p.id : ''; 
+              const editStyleAttr = colorClass ? `${colorClass}` : '';
+              
+              return {
+                  htmlId: `<option value="${playValue}" data-ip="${d.ip}" data-playing="${isPlaying}" ${playDisabledAttr}>${finalLabel}</option>`,
+                  htmlIp: `<option value="${d.ip}" ${editStyleAttr}>${finalLabel}</option>`, 
+                  isPlaying: isPlaying,
+                  id: playValue,
+                  isPlayable: (!isOffline && !isMissingFromMass)
+              };
+          });
+
+          select.innerHTML = options.length ? options.map(o => o.htmlId).join('') : '<option value="">No Configured Speakers Found</option>';
+          
+          const ipOptionsHtml = options.map(o => o.htmlIp).join('');
+          
+          const viewFilter = document.getElementById('preset-view-filter');
+          if (viewFilter) {
+              const currentVal = viewFilter.value;
+              viewFilter.innerHTML = `<option value="">Global (Default)</option>${ipOptionsHtml}`;
+              if (currentVal) viewFilter.value = currentVal;
+          }
+          
+          const editFilter = document.getElementById('edit-speaker');
+          if (editFilter) {
+              const currentEditVal = editFilter.value;
+              editFilter.innerHTML = `<option value="">Global (All Speakers)</option>${ipOptionsHtml}`;
+              if (currentEditVal) editFilter.value = currentEditVal;
+          }
+          
+          // 2. AUTO-SELECT LOGIC
+          const playableOptions = options.filter(o => o.isPlayable);
+          const activeSpeaker = playableOptions.find(o => o.isPlaying);
+          
+          if (activeSpeaker) {
+              select.value = activeSpeaker.id;
+              saveSpeakerSelection();
+              switchTab('nowplaying'); 
+          } else {
+              const saved = localStorage.getItem('bose_active_speaker');
+              if (saved && Array.from(select.options).some(o => o.value === saved && !o.disabled)) {
+                  select.value = saved;
+              } else {
+                  const firstValid = Array.from(select.options).find(o => !o.disabled && o.value !== "");
+                  if (firstValid) {
+                      select.value = firstValid.value;
+                      saveSpeakerSelection();
+                  }
+              }
+          }
+          
+          if (state.tab === 'nowplaying') loadNowPlaying();
+
+      } catch(e) { 
+          select.innerHTML = '<option>Error Loading</option>'; 
+      }
+  }
+
+  function saveSpeakerSelection() { 
+      localStorage.setItem('bose_active_speaker', document.getElementById('global-speaker').value); 
+  }
+
+  // Called when user manually changes the dropdown.
+  function handleSpeakerChange() {
+      saveSpeakerSelection(); 
+      // If viewing the Now Playing tab, refresh immediately to show the new speaker's status.
+      if(state.tab === 'nowplaying') loadNowPlaying();
+  }
+
+  // --- TAB NAVIGATION ---
+  // Handles switching between Library, Now Playing, Recents,Search, and custom views.
+  function switchTab(t) {
+    state.tab = t;
+    
+	// Hide all tabs
+    ['library', 'nowplaying', 'recents', 'search', 'custom'].forEach(tab => {
+        document.getElementById('tab-' + tab).style.display = 'none';
+    });
+	
+    // Show active tab
+    document.getElementById('tab-' + t).style.display = 'block';
+    
+    // Update button active states
+    document.querySelectorAll('.nav-btn').forEach(b => {
+        if(b.dataset.tab === t) b.classList.add('active');
+        else b.classList.remove('active');
+    });
+
+    // Update Label UI (Changes color to indicate Now Playing mode)
+    const label = document.getElementById('play-on-label');
+    if (t === 'nowplaying') {
+        label.innerText = "Now Playing On:";
+        label.style.color = "var(--accent)";
+        startNpPolling();
+    } else {
+        label.innerText = "Play On:";
+        label.style.color = "";
+        stopNpPolling();
+    }
+
+    // Refresh Data for specific tabs
+    if(t === 'library') loadLibrary();
+    if(t === 'recents') loadRecents();
+	if(t === 'custom') loadCustomHistory(); 
+  }
+
+// --- NOW PLAYING POLLING ---
+  // Starts the poller only when the "Now Playing" tab is active to save resources.
+  
+  let lastSeenPosition = -1;
+  let lastSeenTrack = "";
+  let positionAnchorTime = Date.now();
+  let localTicker = null;
+  let lastKnownDevice = null;
+
+  function startNpPolling() {
+      if(npInterval) clearInterval(npInterval);
+      if(localTicker) clearInterval(localTicker);
+      
+      loadNowPlaying();
+      
+      // 📡 NETWORK POLLING: Stays at 2.5 seconds
+      npInterval = setInterval(loadNowPlaying, 2500); 
+      
+      // ⏱️ UI TICKER: Updates the screen every 1 second
+      localTicker = setInterval(() => {
+          if (lastKnownDevice) updateNpUI(lastKnownDevice);
+      }, 1000);
+  }
+
+  function stopNpPolling() {
+      if(npInterval) clearInterval(npInterval);
+      if(localTicker) clearInterval(localTicker);
+      npInterval = null;
+      localTicker = null;
+  }
+
+  // Fetches status for the *currently selected speaker* dropdown item.
+  async function loadNowPlaying() {
+      const select = document.getElementById('global-speaker');
+      if (!select || select.selectedIndex === -1 || !select.value) {
+          updateNpUI(null);
+          return;
+      }
+      
+      const targetIp = select.selectedOptions[0].getAttribute('data-ip');
+      if (!targetIp) { updateNpUI(null); return; }
+
+      const devices = await api('/api/status');
+      if(Array.isArray(devices)) {
+          const device = devices.find(d => d.ip === targetIp);
+          
+          if (device) {
+              // ⏱️ ANCHOR LOGIC: Reset stopwatch if Bose pushes a new time OR the track changes!
+              if (device.position !== lastSeenPosition || device.track !== lastSeenTrack) {
+                  
+                  // If the Track Name changed, force our local math to start counting from 0
+                  if (device.track !== lastSeenTrack) {
+                      device.position = 0; 
+                  }
+
+                  lastSeenPosition = device.position;
+                  lastSeenTrack = device.track; 
+                  positionAnchorTime = Date.now();
+              }
+              
+              // Apply the true anchor time to the device so the math works
+              device.lastUpdateAt = positionAnchorTime; 
+              lastKnownDevice = device; 
+              
+              updateNpUI(device);
+          }
+      }
+  }
+  
+// Updates the Now Playing card with Art, Metadata, and Status Badge.
+function updateNpUI(device) {
+      const els = {
+          img: document.getElementById('np-img'),
+          track: document.getElementById('np-track'),
+          artist: document.getElementById('np-artist'),
+          album: document.getElementById('np-album'),
+          status: document.getElementById('np-status')
+      };
+
+      if (device) { 
+          // --- ARTWORK ---
+          els.img.outerHTML = `
+            <div id="np-img" class="np-art ${device.artPlaceholder}" style="position:relative; overflow:hidden;">
+                ${device.art && device.art !== 'custom_url' ? `<img src="${device.art}" style="width:100%; height:100%; object-fit:cover; position:absolute; top:0; left:0; z-index:10;" onerror="this.style.display='none'">` : ''}
+            </div>
+          `;
+          els.img = document.getElementById('np-img');
+          els.img.style.display = 'flex';
+
+          // --- METADATA ---
+          els.track.innerText = device.track || "Ready";
+          els.artist.innerText = device.artist || "";
+          els.album.innerText = device.album || "";
+          
+          // --- STATUS & SMOOTH TIMER ---
+          if (device.isStandby) {
+              els.status.innerHTML = `<span style="color:var(--text-secondary)">STANDBY</span>`;
+          } else {
+              const isPlaying = (device.playStatus === 'PLAY_STATE' || device.playStatus === 'BUFFERING_STATE');
+              const color = isPlaying ? "var(--accent)" : (device.playStatus === 'PAUSE_STATE' ? "var(--pending)" : "var(--text-primary)");
+              const label = isPlaying ? "PLAYING" : (device.playStatus === 'PAUSE_STATE' ? "PAUSED" : "ON");
+
+              // Calculate per-second drift since the last real update from the hardware
+              let timerHtml = "";
+              if (device.duration > 0) {
+                  const formatTime = (secs) => {
+                      const m = Math.floor(secs / 60);
+                      const s = Math.floor(secs % 60).toString().padStart(2, '0');
+                      return `${m}:${s}`;
+                  };
+
+                  // The Math: How many seconds passed since the server sent this status?
+                  const msSinceUpdate = Date.now() - (device.lastUpdateAt || Date.now());
+                  const secondDrift = isPlaying ? Math.floor(msSinceUpdate / 1000) : 0;
+                  
+                  // Apply drift to the last known position from the hardware
+                  let currentPos = Math.min((device.position || 0) + secondDrift, device.duration);
+                  
+                  timerHtml = `<span class="np-timer">${formatTime(currentPos)} / ${formatTime(device.duration)}</span>`;
+              }
+
+              els.status.innerHTML = `<span style="color:${color}">${label}</span>${timerHtml}`;
+          }
+      } else {
+          els.img.outerHTML = `<div id="np-img" class="np-art art-blank"></div>`;
+          els.img = document.getElementById('np-img');
+          els.img.style.display = 'block';
+          els.track.innerText = "Ready";
+          els.artist.innerText = "";
+          els.status.innerText = "STANDBY / OFFLINE";
+      }
+  }
+
+
+ // --- ACTIONS ---
+
+function playItemGlobal(itemEncoded) {
+      const item = JSON.parse(decodeURIComponent(itemEncoded));
+      const select = document.getElementById('global-speaker');
+      const speakerId = select.value;
+      const speakerName = select.selectedOptions[0].text;
+      
+      // NEW: Extract the exact IP address directly from the dropdown option!
+      const speakerIp = select.selectedOptions[0].getAttribute('data-ip');
+      
+      if (!speakerId) { alert("Please select a speaker from the top menu first."); return; }
+      
+      const settings = item.settings || { shuffle: false, repeat: 'off' };
+      if (!confirm(`Are you sure you want to play "${item.name}" on ${speakerName}?`)) return;
+      
+      api('/api/manager/play_now', {
+          method: 'POST',
+          body: JSON.stringify({ uri: item.uri, name: item.name, settings: settings, player_id: speakerId, ip: speakerIp })
+      });
+  }
+
+  // Generates HTML Media Card (Library/Search/Recent/History).
+	function renderCard(item, isLib, allowSave, hideBadge = false) {
+    if (item.type === 'HEADER') return `<div class="search-divider">${item.title}</div>`;
+    
+    const safeItem = JSON.stringify(item).replace(/"/g, '&quot;');
+    const uriEnc = encodeURIComponent(JSON.stringify(item));
+    const badge = (item.slot > 0 && !hideBadge) ? `<div class="preset-badge">${item.slot}</div>` : '';
+   
+	// --- ARTWORK LOGIC (Unified Z-Index Sandwich) ---
+    const fallbackClass = (item.type === 'custom_url' || item.type === 'radio') ? 'art-globe' : 'art-blank';
+    let imgHtml = '';
+    
+    if (item.image && item.image !== 'custom_url') {
+        imgHtml = `
+          <div class="art ${fallbackClass}" style="position:relative; overflow:hidden;">
+             <img src="${item.image}" style="width:100%; height:100%; object-fit:cover; position:absolute; top:0; left:0; z-index:10;" onerror="this.style.display='none'">
+          </div>`;
+    } else {
+        imgHtml = `<div class="art ${fallbackClass}"></div>`;
+    }
+
+    let btns = '';
+    
+	// IF HISTORY (-1): Show instant Save and Delete
+    if (item.slot === -1) {
+        btns = `<button class="btn-sm" onclick="saveToLibraryDirect('${item.uuid}')">💾 Save to Library</button>
+                <button class="btn-sm" onclick="deleteItem('${item.uuid}', true)" style="color:#e74c3c">✕</button>`;
+    }
+    // IF NORMAL: Show Play, plus Edit/Save 
+    else {
+        btns = `<button class="btn-sm" onclick="playItemGlobal('${uriEnc}')">▶ Play</button>`;
+        if (isLib) {
+            // Already in library: show Edit and Delete
+            btns += ` <button class="btn-sm" onclick="openModal(${safeItem})">✎ Edit</button>
+                      <button class="btn-sm" onclick="deleteItem('${item.uuid}')" style="color:#e74c3c">✕</button>`;
+        } else if (allowSave) {
+            // Search result or Recent: show Save
+            btns += ` <button class="btn-sm" onclick="openModal(${safeItem})">💾 Save</button>`;
+        }
+    }
+
+    return `
+      <div class="card">
+        ${badge}
+        ${imgHtml}
+        <div class="info">
+          <span class="title">${item.name}</span>
+          <span class="sub">${item.subtitle || item.type}</span>
+          <div class="actions">${btns}</div>
+        </div>
+      </div>
+    `;
+  }
+
+  // --- SEARCH LOGIC ---
+function setSource(s) {
+    state.source = s;
+    document.getElementById('search-results').innerHTML = ''; 
+    document.querySelectorAll('.source-btn').forEach(b => b.classList.remove('active-spotify', 'active-radio', 'active-nas','active-global'));   
+	
+    const map = { spotify: 'active-spotify', radio: 'active-radio', nas: 'active-nas', global: 'active-global'};   
+    const activeBtn = document.querySelector(`.source-btn[onclick="setSource('${s}')"]`);
+    if (activeBtn) activeBtn.classList.add(map[s]);
+    
+    const filterRow = document.getElementById('filter-row');
+    const searchInput = document.getElementById('q');
+    const providerSelect = document.getElementById('provider-filter'); 
+    
+    if (s === 'radio') { 
+        setFilter('all'); 
+        filterRow.style.display = 'none'; 
+    } else {
+        filterRow.style.display = 'flex';
+        if (s === 'nas') { setFilter('all'); searchInput.value = ""; }
+		
+        const stationPill = document.getElementById('filter-stations');
+        if (stationPill) {
+            stationPill.style.display = (s === 'global') ? 'block' : 'none';
+        }
+
+        // --- Toggle Search Provider Dropdown ---
+        if (providerSelect) {
+            providerSelect.style.display = (s === 'global') ? 'inline-block' : 'none';
+            if (s !== 'global') providerSelect.value = 'all'; 
+        }
+    }
+  }
+
+  function setFilter(f) {
+    state.filter = f;
+    document.querySelectorAll('.filter-pill').forEach(b => b.classList.remove('active'));
+    
+    // Select the button that triggered the event, or find it by attribute if programmatic
+    const btn = document.querySelector(`.filter-pill[onclick="setFilter('${f}')"]`);
+    if(btn) btn.classList.add('active');
+  }
+
+  async function doSearch() {
+    const q = document.getElementById('q').value;
+    const limit = document.getElementById('limit').value; 
+	const providerFilter = document.getElementById('provider-filter') ? document.getElementById('provider-filter').value : 'all'; 
+    const box = document.getElementById('search-results');
+    
+    if (!q.trim()) { box.innerHTML = '<div style="padding:20px; color:#aaa">Please enter a search term.</div>'; return; }
+    
+    box.innerHTML = '<div style="padding:20px; color:#888">Searching MASS...</div>';
+    
+    const data = await api('/api/manager/search', {
+        method: 'POST',
+		body: JSON.stringify({ query: q, source: state.source, type: state.filter, limit: limit, providerFilter: providerFilter }) // <-- NEW: Added to paylo
+    });
+    
+    if (data.error) {
+        box.innerHTML = `<div style="padding:20px; color:red">Server Error: ${data.error}</div>`;
+        return;
+    }
+    
+    if(!Array.isArray(data) || data.length === 0) {
+        box.innerHTML = '<div style="padding:20px; color:#aaa">No results found (Strict Filter is ON).</div>';
+    } else {
+        const allowSave = (state.source !== 'spotify'); 
+        box.innerHTML = data.map(i => renderCard(i, false, allowSave)).join('');
+    }
+  }
+
+  // --- DATA LOADING (Library / Recents) ---
+
+  async function loadRecents() {
+      const box = document.getElementById('recents-results');
+      box.innerHTML = '<div style="padding:20px; color:#888">Loading Recents...</div>';
+      
+      const data = await api('/api/manager/recents');
+      if (Array.isArray(data)) {
+          box.innerHTML = data.map(i => renderCard(i, false, true)).join(''); 
+      } else {
+          box.innerHTML = `Error loading recents`;
+      }
+  }
+
+  async function loadLibrary() {
+    const library = await api('/api/manager/library');
+    if (!Array.isArray(library)) return;
+    
+    // Custom sort priority: Playlist > Artist > Album > Track
+    const typePriority = { 'playlist': 1, 'artist': 2, 'album': 3, 'track': 4 };
+    
+    library.sort((a, b) => {
+        const pA = typePriority[a.type] || 99;
+        const pB = typePriority[b.type] || 99;
+        if (pA !== pB) return pA - pB;
+        return (a.name || "").localeCompare(b.name || "");
+    });
+
+    const viewScope = document.getElementById('preset-view-filter') ? document.getElementById('preset-view-filter').value : '';
+
+    // Generate Preset Cards (Slots 1-6) based on selected scope
+    const presets = [1,2,3,4,5,6].map(slot => {
+        const item = library.find(i => i.slot === slot && (i.speakerIp || '') === viewScope);
+        if(item) return renderCard(item, true, true);
+        // Updated empty slot styling to use a class instead of inline dim styles
+        return `<div class="card empty-slot">Slot ${slot} Empty (${viewScope === '' ? 'Global' : 'Hybrid'})</div>`;
+    }).join('');
+    
+	// --- FAVORITES FILTERING & DYNAMIC DROPDOWN ---
+    const allFavs = library.filter(i => i.slot === 0 || (i.slot > 0 && i.speakerIp));
+    
+	// 1. "Outer Join" logic: Merge MA Global Providers with local unique Favorites
+    const uniqueProviders = [...new Set(allFavs.map(i => i.provider || 'unknown'))];
+    const favProvSelect = document.getElementById('fav-provider-filter');
+    
+    if (favProvSelect) {
+        const currentFavProv = favProvSelect.value;
+        let provHtml = '<option value="all">All Providers</option>';
+        
+        // Merge the global Music Assistant providers with any unique ones from our library
+        const allDomains = new Set([...globalProviders.map(p => p.domain), ...uniqueProviders]);
+        
+			Array.from(allDomains).sort().forEach(provDomain => {
+            const maProv = globalProviders.find(p => p.domain === provDomain);
+            let friendlyName = maProv ? maProv.name : provDomain.charAt(0).toUpperCase() + provDomain.slice(1);
+            
+            // --- Rename "builtin" to "URL Stream" for the UI ---
+            if (provDomain === 'builtin' || provDomain === 'url') {
+                friendlyName = 'URL Stream';
+            }
+            
+            if (uniqueProviders.includes(provDomain)) {
+                // Provider has active favorites - Make it selectable
+                provHtml += `<option value="${provDomain}">${friendlyName}</option>`;
+            } else {
+                // Provider has NO active favorites - Gray it out and disable it
+                provHtml += `<option value="${provDomain}" disabled style="color: #666; font-style: italic;">${friendlyName}</option>`;
+            }
+        });
+        
+        favProvSelect.innerHTML = provHtml;
+        
+        // Retain selection if valid, otherwise fallback to 'all'
+        if (uniqueProviders.includes(currentFavProv) || currentFavProv === 'all') {
+            favProvSelect.value = currentFavProv;
+        } else {
+            favProvSelect.value = 'all';
+        }
+    }
+
+    // 2. Apply Filters (Pills + Dropdown)
+    let filteredFavs = allFavs;
+    if (state.favFilter !== 'all') {
+        filteredFavs = filteredFavs.filter(i => i.type === state.favFilter);
+    }
+    if (favProvSelect && favProvSelect.value !== 'all') {
+        filteredFavs = filteredFavs.filter(i => (i.provider || 'unknown') === favProvSelect.value);
+    }
+
+    const favsHtml = filteredFavs.map(i => renderCard(i, true, true, true)).join('');
+    
+    document.getElementById('lib-presets').innerHTML = presets;
+    document.getElementById('lib-favorites').innerHTML = favsHtml || '<div style="padding:20px; color:#555">No items match your filters.</div>';
+  }
+
+  // --- MODAL & SAVING ---
+  
+  // Forces a strong visual gray-out of the Target Speaker dropdown
+  function toggleSpeakerDropdown(slotValue) {
+      const speakerSelect = document.getElementById('edit-speaker');
+      const speakerLabel = document.getElementById('label-edit-speaker');
+      const isFavorite = (parseInt(slotValue) === 0);
+      
+      speakerSelect.disabled = isFavorite;
+      
+      if (isFavorite) {
+          speakerSelect.style.opacity = '0.4';
+          speakerSelect.style.cursor = 'not-allowed';
+          speakerLabel.style.opacity = '0.4';
+      } else {
+          speakerSelect.style.opacity = '1';
+          speakerSelect.style.cursor = 'pointer';
+          speakerLabel.style.opacity = '1';
+      }
+  }
+
+  function openModal(item) {
+      document.getElementById('modal').style.display = 'flex';
+      
+      // Populate hidden fields
+      ['uuid', 'uri', 'image', 'type', 'subtitle','provider'].forEach(field => {
+          document.getElementById('edit-' + field).value = item[field] || (field === 'uuid' ? '' : item.type);
+      });
+      document.getElementById('edit-name').value = item.name;
+      
+      const slotVal = parseInt(item.slot) || 0;
+      document.getElementById('edit-slot').value = slotVal;
+      document.getElementById('edit-speaker').value = item.speakerIp || '';
+
+      // Run the visual gray-out logic immediately upon opening
+      toggleSpeakerDropdown(slotVal);
+
+      // Handle Settings (Shuffle/Repeat)
+      const uri = (item.uri || "").toLowerCase();
+      const type = (item.type || "").toLowerCase();
+      
+      const shuf = document.getElementById('edit-shuffle');
+      const rep  = document.getElementById('edit-repeat');
+      
+      shuf.disabled = false; rep.disabled = false;
+      
+      // Disable options for Radio streams as they don't support shuffle/repeat
+	if (type === 'radio' || uri.includes('tunein') || uri.includes('radio')) {
+          shuf.checked = false; shuf.disabled = true; 
+          rep.value = 'off'; rep.disabled = true; 
+      } else { 
+          shuf.checked = item.settings?.shuffle || false; 
+          rep.value = item.settings?.repeat || 'off'; 
+      }
+  }
+
+  function closeModal() { document.getElementById('modal').style.display = 'none'; }
+
+  async function saveItem() {
+      const data = {
+          uuid: document.getElementById('edit-uuid').value,
+          name: document.getElementById('edit-name').value,
+          subtitle: document.getElementById('edit-subtitle').value, 
+          uri: document.getElementById('edit-uri').value,
+          image: document.getElementById('edit-image').value,
+          type: document.getElementById('edit-type').value,
+		  provider: document.getElementById('edit-provider').value, 
+          slot: document.getElementById('edit-slot').value,
+          speakerIp: document.getElementById('edit-speaker').value,
+          settings: { 
+              shuffle: document.getElementById('edit-shuffle').checked, 
+              repeat: document.getElementById('edit-repeat').value
+          }
+      };
+      
+      await api('/api/manager/save', { method: 'POST', body: JSON.stringify(data) });
+      closeModal();
+      
+      if(state.tab === 'library') loadLibrary(); 
+      else alert("Saved to Library!");
+  }
+
+  async function deleteItem(uuid) { 
+      if(confirm("Delete this item?")) { 
+          await api(`/api/manager/delete/${uuid}`, { method: 'DELETE' }); 
+          loadLibrary(); 
+      } 
+  }
+
+  // --- SPEAKER LIST MODAL (Secondary) ---
+  // Used when clicking "Play" from the search results to confirm target speaker.
+  
+  async function playItem(uuid) { openSpeakerModal(uuid); }
+  
+  function openSpeakerModal(uuid) { 
+      selectedUuid = uuid; 
+      renderSpeakerList(); 
+      document.getElementById('speaker-modal').style.display = 'flex'; 
+  }
+  
+  function closeSpeakerModal() { document.getElementById('speaker-modal').style.display = 'none'; }
+
+async function renderSpeakerList() {
+      const [devices, maPlayers] = await Promise.all([
+          api('/api/status'),
+          api('/api/manager/players')
+      ]);
+      if (!Array.isArray(devices)) return;
+      
+      const list = document.getElementById('speaker-list');
+      list.innerHTML = devices.map(d => {
+          // Check if MASS can see it
+          const p = maPlayers ? maPlayers.find(mp => mp.ip === d.ip) : null;
+          
+          const isOffline = !d.online;
+          const isMissingFromMass = !p;
+          const isDisabled = isOffline || isMissingFromMass;
+          
+          let subText = d.isStandby ? 'OFF' : 'ON';
+          if (isOffline) subText = 'OFFLINE';
+          else if (isMissingFromMass) subText = 'NO MASS';
+          
+          // Gray out the button and disable clicks if unplayable using the new CSS class
+          const btnClass = isDisabled ? 'btn btn-unreachable' : 'btn';
+          const btnStyle = 'justify-content:space-between;';
+          const clickAction = isDisabled ? '' : `onclick="confirmPlay('${d.ip}')"`;
+
+          return `<button class="${btnClass}" style="${btnStyle}" ${clickAction}>
+              ${d.name} <span style="font-size:0.8em; color:var(--text-secondary)">${subText}</span>
+           </button>`;
+      }).join('');
+  }
+
+  async function confirmPlay(ip) {
+      document.getElementById('speaker-modal').style.display = 'none';
+      await api('/api/manager/play', { 
+          method: 'POST', 
+          body: JSON.stringify({ uuid: selectedUuid, ip }) 
+      });
+      alert(`Playing on ${ip}...`);
+  } 
+  
+	async function playCustomStream() {
+      const urlInput = document.getElementById('stream-url');
+      const nameInput = document.getElementById('stream-name');
+      const url = urlInput.value.trim();
+      const name = nameInput.value.trim();
+      const select = document.getElementById('global-speaker');
+      const playerId = select.value; 
+      
+      if (!playerId) return alert("Please select a speaker from the top menu.");     
+      if (!url) return alert("❌ Please enter a Stream URL.");
+      if (!name) return alert("❌ Please enter a Station Name.");
+      
+      const res = await api('/api/manager/play_stream', { 
+          method: 'POST', 
+          body: JSON.stringify({ player_id: playerId, url, name }) 
+      });
+      
+      if(res.success) {
+          urlInput.value = '';
+          nameInput.value = '';
+          loadCustomHistory(); 
+      } else {
+          alert("Error: " + (res.error || "Failed to start stream."));
+      }
+  }
+
+  async function loadCustomHistory() {
+      const box = document.getElementById('custom-history-results');
+      box.innerHTML = '<div style="padding:20px; color:#888">Loading History...</div>';
+      
+      const library = await api('/api/manager/library');
+      if (!Array.isArray(library)) return;
+      
+      // Filter for slot -1, reverse so newest is first
+      const history = library.filter(i => i.slot === -1).reverse(); 
+      
+      if (history.length === 0) {
+          box.innerHTML = '<div style="padding:10px; color:#555">No recent unsaved streams.</div>';
+      } else {
+          box.innerHTML = history.map(i => renderCard(i, false, true, true)).join('');
+      }
+  }
+  
+  // Saves history item to Fav (Slot 0) without modal
+  async function saveToLibraryDirect(uuid) {
+      const library = await api('/api/manager/library');
+      const item = library.find(i => i.uuid === uuid);
+      if (!item) return;
+
+      // Promote to Favorite (Slot 0) and strip UUID so it saves as a new library item
+      const data = { ...item, slot: 0 };
+      
+      await api('/api/manager/save', { method: 'POST', body: JSON.stringify(data) });
+      alert(`"${item.name}" saved to Favorites!`);
+      loadCustomHistory(); // Refresh list
+  }
+
+  // Updated deleteItem to support optional refresh of history
+  async function deleteItem(uuid, isHistory = false) { 
+      if(confirm("Delete this item?")) { 
+          await api(`/api/manager/delete/${uuid}`, { method: 'DELETE' }); 
+          if(isHistory) loadCustomHistory();
+          else loadLibrary(); 
+      } 
+  }
+  
+
+</script>
+</body>
+</html>

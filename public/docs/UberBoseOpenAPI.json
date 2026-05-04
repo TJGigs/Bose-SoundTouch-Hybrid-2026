@@ -1,0 +1,3836 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Überböse Streaming API",
+    "description": "The missing API specifications for your streaming device.\n\nThis api spec combines the APIs of 4 different APIs / domains your speaker contacts.\n\n- **marge**: Account bound API managing source providers, presets, recents, and devices\n- **stats**: Device analytics and telemetry API collecting playback events and diagnostics\n- **software-update**: Firmware update information\n- **bmx**: API for streaming radio services (TuneIn, Custom Stations, etc.)\n",
+    "version": "1.2.0"
+  },
+  "paths": {
+    "/streaming/sourceproviders": {
+      "get": {
+        "summary": "Get streaming source providers",
+        "description": "Retrieves a list of available streaming source providers",
+        "operationId": "getSourceProviders",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response with list of source providers",
+            "headers": {
+              "Content-Type": {
+                "schema": {
+                  "type": "string",
+                  "example": "application/vnd.bose.streaming-v1.2+xml"
+                }
+              },
+              "ETag": {
+                "schema": {
+                  "type": "string",
+                  "example": "1762017390476"
+                }
+              }
+            },
+            "content": {
+              "application/vnd.bose.streaming-v1.2+xml": {
+                "schema": {
+                  "$ref": "#/components/schemas/SourceProvidersResponse"
+                },
+                "example": "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>\n<sourceProviders>\n  <sourceprovider id=\"1\">\n    <createdOn>2012-09-19T12:43:00.000+00:00</createdOn>\n    <name>PANDORA</name>\n    <updatedOn>2012-09-19T12:43:00.000+00:00</updatedOn>\n  </sourceprovider>\n  <sourceprovider id=\"15\">\n    <createdOn>2014-03-17T15:30:27.000+00:00</createdOn>\n    <name>SPOTIFY</name>\n    <updatedOn>2014-03-17T15:30:27.000+00:00</updatedOn>\n  </sourceprovider>\n</sourceProviders>\n"
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized - Invalid or missing Bearer token"
+          },
+          "403": {
+            "description": "Forbidden - Valid token but insufficient permissions"
+          },
+          "500": {
+            "description": "Internal server error"
+          }
+        }
+      }
+    },
+    "/streaming/account/{accountId}/device/{deviceId}/recent": {
+      "post": {
+        "summary": "Add recent item",
+        "description": "Adds a recent item to the device's recent history",
+        "operationId": "addRecentItem",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/accountId"
+          },
+          {
+            "$ref": "#/components/parameters/deviceId"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/vnd.bose.streaming-v1.2+xml": {
+              "schema": {
+                "$ref": "#/components/schemas/RecentItemRequest"
+              },
+              "example": "<?xml version=\"1.0\" encoding=\"UTF-8\" ?>\n<recent>\n  <lastplayedat>2025-11-01T17:32:59+00:00</lastplayedat>\n  <sourceid>19989313</sourceid>\n  <name>Radio TEDDY</name>\n  <location>/v1/playback/station/s80044</location>\n  <contentItemType>stationurl</contentItemType>\n</recent>\n"
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Recent item created successfully",
+            "headers": {
+              "Content-Type": {
+                "schema": {
+                  "type": "string",
+                  "example": "application/vnd.bose.streaming-v1.2+xml"
+                }
+              },
+              "Location": {
+                "schema": {
+                  "type": "string",
+                  "example": "http://streamingqa.bose.com/account/6921042/device/587A628A4042/recent/2244536342"
+                }
+              }
+            },
+            "content": {
+              "application/vnd.bose.streaming-v1.2+xml": {
+                "schema": {
+                  "$ref": "#/components/schemas/RecentItemResponse"
+                },
+                "example": "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>\n<recent id=\"2244536342\">\n  <contentItemType>stationurl</contentItemType>\n  <createdOn>2018-11-27T18:20:01.000+00:00</createdOn>\n  <lastplayedat>2025-11-01T17:32:59.000+00:00</lastplayedat>\n  <location>/v1/playback/station/s80044</location>\n  <name>Radio TEDDY</name>\n  <source id=\"19989313\" type=\"Audio\">\n    <createdOn>2018-08-11T08:55:41.000+00:00</createdOn>\n    <credential type=\"token\">eyDu=</credential>\n    <name></name>\n    <sourceproviderid>25</sourceproviderid>\n    <sourcename></sourcename>\n    <sourceSettings/>\n    <updatedOn>2019-07-20T17:48:31.000+00:00</updatedOn>\n    <username></username>\n  </source>\n  <sourceid>19989313</sourceid>\n  <updatedOn>2025-11-01T17:33:00.574+00:00</updatedOn>\n</recent>\n"
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request - Invalid request body or parameters"
+          },
+          "401": {
+            "description": "Unauthorized - Invalid or missing Bearer token"
+          },
+          "403": {
+            "description": "Forbidden - Valid token but insufficient permissions"
+          },
+          "404": {
+            "description": "Not found - Account or device not found"
+          },
+          "500": {
+            "description": "Internal server error"
+          }
+        }
+      }
+    },
+    "/streaming/account/{accountId}/device/{deviceId}/recents": {
+      "get": {
+        "summary": "Get recent items",
+        "description": "Retrieves a list of recent items played on the device",
+        "operationId": "getRecents",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/accountId"
+          },
+          {
+            "$ref": "#/components/parameters/deviceId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response with list of recent items",
+            "headers": {
+              "Content-Type": {
+                "schema": {
+                  "type": "string",
+                  "example": "application/vnd.bose.streaming-v1.2+xml"
+                }
+              },
+              "ETag": {
+                "schema": {
+                  "type": "string",
+                  "example": "1765724977209"
+                }
+              }
+            },
+            "content": {
+              "application/vnd.bose.streaming-v1.2+xml": {
+                "schema": {
+                  "$ref": "#/components/schemas/RecentsContainer"
+                },
+                "example": "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>\n<recents>\n  <recent id=\"2560855517\">\n    <contentItemType>tracklisturl</contentItemType>\n    <createdOn>2025-12-13T17:14:28.000+00:00</createdOn>\n    <lastplayedat>2025-12-14T14:15:59.000+00:00</lastplayedat>\n    <location>/playback/container/c3BvdGlmeTphbGJ1bTowZ3BGWVZNbVV6VkVxeVAyeUh3cEha</location>\n    <name>Ghostsitter 23 - Das Haus im Moor</name>\n    <source id=\"19989621\" type=\"Audio\">\n      <createdOn>2018-08-11T09:52:31.000+00:00</createdOn>\n      <credential type=\"token_version_3\">mockToken123=</credential>\n      <name>mockuser123</name>\n      <sourceproviderid>15</sourceproviderid>\n      <sourcename>mock@example.com</sourcename>\n      <sourceSettings/>\n      <updatedOn>2018-11-26T18:42:27.000+00:00</updatedOn>\n      <username>mockuser123</username>\n    </source>\n    <sourceid>19989621</sourceid>\n    <updatedOn>2025-12-14T14:16:05.000+00:00</updatedOn>\n  </recent>\n  <recent id=\"2244536335\">\n    <contentItemType>stationurl</contentItemType>\n    <createdOn>2018-11-27T18:20:01.000+00:00</createdOn>\n    <lastplayedat>2025-12-14T12:32:00.000+00:00</lastplayedat>\n    <location>/v1/playback/station/s80044</location>\n    <name>Radio TEDDY</name>\n    <source id=\"19989313\" type=\"Audio\">\n      <createdOn>2018-08-11T08:55:41.000+00:00</createdOn>\n      <credential type=\"token\">eyJmock=</credential>\n      <name></name>\n      <sourceproviderid>25</sourceproviderid>\n      <sourcename></sourcename>\n      <sourceSettings/>\n      <updatedOn>2019-07-20T17:48:31.000+00:00</updatedOn>\n      <username></username>\n    </source>\n    <sourceid>19989313</sourceid>\n    <updatedOn>2025-12-14T12:32:05.000+00:00</updatedOn>\n  </recent>\n</recents>\n"
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized - Invalid or missing Bearer token"
+          },
+          "403": {
+            "description": "Forbidden - Valid token but insufficient permissions"
+          },
+          "404": {
+            "description": "Not found - Account or device not found"
+          },
+          "500": {
+            "description": "Internal server error"
+          }
+        }
+      }
+    },
+    "/streaming/account/{accountId}/device/{deviceId}/recent/{recentId}": {
+      "get": {
+        "summary": "Get recent item by ID",
+        "description": "Retrieves a specific recent item by its ID",
+        "operationId": "getRecentItem",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/accountId"
+          },
+          {
+            "$ref": "#/components/parameters/deviceId"
+          },
+          {
+            "name": "recentId",
+            "in": "path",
+            "required": true,
+            "description": "Recent item identifier",
+            "schema": {
+              "type": "string",
+              "example": "2557568761"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response with recent item details",
+            "headers": {
+              "Content-Type": {
+                "schema": {
+                  "type": "string",
+                  "example": "application/vnd.bose.streaming-v1.2+xml"
+                }
+              }
+            },
+            "content": {
+              "application/vnd.bose.streaming-v1.2+xml": {
+                "schema": {
+                  "$ref": "#/components/schemas/RecentItemResponse"
+                },
+                "example": "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>\n<recent id=\"3332\">\n  <contentItemType>tracklisturl</contentItemType>\n  <createdOn>2025-11-08T21:07:34.000+00:00</createdOn>\n  <lastplayedat>2025-11-08T21:15:53.000+00:00</lastplayedat>\n  <location>/playback/container/c3BvdGlmeTp0cmFjazo0QnQ0VDRjM1c4UElrZEZuQVNLbXk5</location>\n  <name>Zähne putzen</name>\n  <source id=\"19989621\" type=\"Audio\">\n    <createdOn>2018-08-11T09:52:31.000+00:00</createdOn>\n    <credential type=\"token_version_3\">mockToken789xyz=</credential>\n    <name>mockuser789xyz</name>\n    <sourceproviderid>15</sourceproviderid>\n    <sourcename>user@example.com</sourcename>\n    <sourceSettings/>\n    <updatedOn>2018-11-26T18:42:27.000+00:00</updatedOn>\n    <username>mockuser789xyz</username>\n  </source>\n  <sourceid>19989621</sourceid>\n  <updatedOn>2025-11-08T21:15:55.000+00:00</updatedOn>\n</recent>\n"
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized - Invalid or missing Bearer token"
+          },
+          "403": {
+            "description": "Forbidden - Valid token but insufficient permissions"
+          },
+          "404": {
+            "description": "Not found - Account, device, or recent item not found"
+          },
+          "500": {
+            "description": "Internal server error"
+          }
+        }
+      }
+    },
+    "/streaming/account/{accountId}/device/{deviceId}/presets": {
+      "get": {
+        "summary": "Get device presets",
+        "description": "Retrieves a list of presets configured for the device",
+        "operationId": "getPresets",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/accountId"
+          },
+          {
+            "$ref": "#/components/parameters/deviceId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response with list of presets",
+            "headers": {
+              "Content-Type": {
+                "schema": {
+                  "type": "string",
+                  "example": "application/vnd.bose.streaming-v1.2+xml"
+                }
+              },
+              "ETag": {
+                "schema": {
+                  "type": "string",
+                  "example": "1736199076279"
+                }
+              }
+            },
+            "content": {
+              "application/vnd.bose.streaming-v1.2+xml": {
+                "schema": {
+                  "$ref": "#/components/schemas/PresetsContainer"
+                },
+                "example": "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>\n<presets>\n  <preset buttonNumber=\"1\">\n    <containerArt>http://cdn-radiotime-logos.tunein.com/s80044q.png</containerArt>\n    <contentItemType>stationurl</contentItemType>\n    <createdOn>2018-11-26T18:40:45.000+00:00</createdOn>\n    <location>/v1/playback/station/s80044</location>\n    <name>Radio TEDDY</name>\n    <source id=\"19989313\" type=\"Audio\">\n      <createdOn>2018-08-11T08:55:41.000+00:00</createdOn>\n      <credential type=\"token\">eyJzZXJpYWwiOiAiZjUwY2JjZGItN2IxMi00NjJmLWE5ZTctZGEzMTg5NDcwMTU4In0=</credential>\n      <name></name>\n      <sourceproviderid>25</sourceproviderid>\n      <sourcename></sourcename>\n      <sourceSettings/>\n      <updatedOn>2019-07-20T17:48:31.000+00:00</updatedOn>\n      <username></username>\n    </source>\n    <updatedOn>2018-11-26T18:40:45.000+00:00</updatedOn>\n    <username>Radio TEDDY</username>\n  </preset>\n  <preset buttonNumber=\"2\">\n    <containerArt>https://mosaic.scdn.co/300/ab67616d0000b2732a4bc05d6d23b6a9a309e8f8ab67616d0000b2733d3c35cdbf9c51eefeaed7a7ab67616d0000b2738271a54c70aaae53e3da0c09ab67616d0000b273c4ec45569fc2db1edc44a465</containerArt>\n    <contentItemType>tracklisturl</contentItemType>\n    <createdOn>2018-11-14T18:27:39.000+00:00</createdOn>\n    <location>/playback/container/c3BvdGlmeTpwbGF5bGlzdDoyM1NNZHlPSEE2S2t6SG9QT0o1S1E5</location>\n    <name>Radio Mix</name>\n    <source id=\"19989621\" type=\"Audio\">\n      <createdOn>2018-08-11T09:52:31.000+00:00</createdOn>\n      <credential type=\"token_version_3\">AQCfoupV5pdDJvqVjVdOF5tUOvyB3mKqeUGyZgqSYk4imOvta8p4dJnCHCNZANz-x0O-W2aQ15ML38pyx1CdvNSdOjGPwg0IlYYfPKWgoS07kmdEfRpf1Vur-OIx46KF56pjsA</credential>\n      <name>mock5zt8py3wuxy123xa431ge</name>\n      <sourceproviderid>15</sourceproviderid>\n      <sourcename>user@example.com</sourcename>\n      <sourceSettings/>\n      <updatedOn>2018-11-26T18:42:27.000+00:00</updatedOn>\n      <username>mock5zt8py3wuxy123xa431ge</username>\n    </source>\n    <updatedOn>2021-02-21T20:19:16.000+00:00</updatedOn>\n    <username>Radio Mix</username>\n  </preset>\n  <preset buttonNumber=\"3\">\n    <containerArt>http://cdn-profiles.tunein.com/s25111/images/logoq.jpg?t=1</containerArt>\n    <contentItemType>stationurl</contentItemType>\n    <createdOn>2018-11-26T18:41:18.000+00:00</createdOn>\n    <location>/v1/playback/station/s25111</location>\n    <name>radioeins vom rbb</name>\n    <source id=\"19989313\" type=\"Audio\">\n      <createdOn>2018-08-11T08:55:41.000+00:00</createdOn>\n      <credential type=\"token\">eyJzZXJpYWwiOiAiZjUwY2JjZGItN2IxMi00NjJmLWE5ZTctZGEzMTg5NDcwMTU4In0=</credential>\n      <name></name>\n      <sourceproviderid>25</sourceproviderid>\n      <sourcename></sourcename>\n      <sourceSettings/>\n      <updatedOn>2019-07-20T17:48:31.000+00:00</updatedOn>\n      <username></username>\n    </source>\n    <updatedOn>2018-11-26T18:41:18.000+00:00</updatedOn>\n    <username>radioeins vom rbb</username>\n  </preset>\n  <preset buttonNumber=\"4\">\n    <containerArt>https://mosaic.scdn.co/300/ab67616d0000b2735ca387be0b44d742bcee3317ab67616d0000b273627072ee659b0f3aaa0f537aab67616d0000b27364b153e7f4b060d9735c7d76ab67616d0000b2738ba1aaf88b157453fe12482d</containerArt>\n    <contentItemType>tracklisturl</contentItemType>\n    <createdOn>2018-11-26T18:47:06.000+00:00</createdOn>\n    <location>/playback/container/c3BvdGlmeTpwbGF5bGlzdDoyd0JCOGIzUWhDWXd5T0d2dE9id3dI</location>\n    <name>Saisonal Simone Sommerland</name>\n    <source id=\"19989621\" type=\"Audio\">\n      <createdOn>2018-08-11T09:52:31.000+00:00</createdOn>\n      <credential type=\"token_version_3\">AQCfoupV5pdDJvqVjVdOF5tUOvyB3mKqeUGyZgqSYk4imOvta8p4dJnCHCNZANz-x0O-W2aQ15ML38pyx1CdvNSdOjGPwg0IlYYfPKWgoS07kmdEfRpf1Vur-OIx46KF56pjsA</credential>\n      <name>mock5zt8py3wuxy123xa431ge</name>\n      <sourceproviderid>15</sourceproviderid>\n      <sourcename>user@example.com</sourcename>\n      <sourceSettings/>\n      <updatedOn>2018-11-26T18:42:27.000+00:00</updatedOn>\n      <username>mock5zt8py3wuxy123xa431ge</username>\n    </source>\n    <updatedOn>2022-11-17T19:35:37.000+00:00</updatedOn>\n    <username>Saisonal Simone Sommerland</username>\n  </preset>\n  <preset buttonNumber=\"5\">\n    <containerArt></containerArt>\n    <contentItemType>tracklisturl</contentItemType>\n    <createdOn>2018-11-14T18:27:23.000+00:00</createdOn>\n    <location>/playback/container/c3BvdGlmeTpwbGF5bGlzdDozN2k5ZFFaRjFFNG1zazBURmdzeVRG</location>\n    <name>Ed Sheeran Radio</name>\n    <source id=\"20260226\" type=\"Audio\">\n      <createdOn>2018-09-16T19:18:46.000+00:00</createdOn>\n      <credential type=\"token_version_3\">AQAHZ3A2USJzLX8CUEUPqIHOPpQihPpwcVO-0h2-g5-7SWRtIFfoQadeVu1Ud0TgVDkee7PyFnJbJUubZkrpv3A9jLaEeY991wSkXGG-EM_IlwvkRpASmwT3nbyixpVkSDw</credential>\n      <name>bldfvhhzdsyw2d4cy3melcaco</name>\n      <sourceproviderid>15</sourceproviderid>\n      <sourcename>otheruser@example.com</sourcename>\n      <sourceSettings/>\n      <updatedOn>2019-12-20T14:31:09.000+00:00</updatedOn>\n      <username>bldfvhhzdsyw2d4cy3melcaco</username>\n    </source>\n    <updatedOn>2020-01-26T12:45:13.000+00:00</updatedOn>\n    <username>Ed Sheeran Radio</username>\n  </preset>\n  <preset buttonNumber=\"6\">\n    <containerArt>https://image-cdn-fa.spotifycdn.com/image/ab67706c0000da843b38733ef58fbd3530776a42</containerArt>\n    <contentItemType>tracklisturl</contentItemType>\n    <createdOn>2018-08-11T09:53:48.000+00:00</createdOn>\n    <location>/playback/container/c3BvdGlmeTpwbGF5bGlzdDoybjZXMnA1QzBNQUQ5YTR6NXhUVDdu</location>\n    <name>Komplett Entspannt</name>\n    <source id=\"19989621\" type=\"Audio\">\n      <createdOn>2018-08-11T09:52:31.000+00:00</createdOn>\n      <credential type=\"token_version_3\">AQCfoupV5pdDJvqVjVdOF5tUOvyB3mKqeUGyZgqSYk4imOvta8p4dJnCHCNZANz-x0O-W2aQ15ML38pyx1CdvNSdOjGPwg0IlYYfPKWgoS07kmdEfRpf1Vur-OIx46KF56pjsA</credential>\n      <name>mock5zt8py3wuxy123xa431ge</name>\n      <sourceproviderid>15</sourceproviderid>\n      <sourcename>user@example.com</sourcename>\n      <sourceSettings/>\n      <updatedOn>2018-11-26T18:42:27.000+00:00</updatedOn>\n      <username>mock5zt8py3wuxy123xa431ge</username>\n    </source>\n    <updatedOn>2025-01-06T21:31:15.000+00:00</updatedOn>\n    <username>Komplett Entspannt</username>\n  </preset>\n</presets>\n"
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized - Invalid or missing Bearer token"
+          },
+          "403": {
+            "description": "Forbidden - Valid token but insufficient permissions"
+          },
+          "404": {
+            "description": "Not found - Account or device not found"
+          },
+          "500": {
+            "description": "Internal server error"
+          }
+        }
+      }
+    },
+    "/streaming/account/{accountId}/device/{deviceId}/preset/{buttonNumber}": {
+      "put": {
+        "summary": "Update device preset",
+        "description": "Updates or creates a preset for a specific button number on the device",
+        "operationId": "updatePreset",
+        "tags": [
+          "experimental"
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/accountId"
+          },
+          {
+            "$ref": "#/components/parameters/deviceId"
+          },
+          {
+            "name": "buttonNumber",
+            "in": "path",
+            "required": true,
+            "description": "Preset button number (1-6)",
+            "schema": {
+              "type": "integer",
+              "example": 2
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/vnd.bose.streaming-v1.2+xml": {
+              "schema": {
+                "$ref": "#/components/schemas/PresetUpdateRequest"
+              },
+              "example": "<?xml version=\"1.0\" encoding=\"UTF-8\" ?>\n<preset buttonNumber=\"2\">\n  <sourceid>19989621</sourceid>\n  <name>Radio Mix</name>\n  <username>Radio Mix</username>\n  <location>/playback/container/c3BvdGlmeTpwbGF5bGlzdDoyM1NNZHlPSEE2S2t6SG9QT0o1S1E5</location>\n  <contentItemType>tracklisturl</contentItemType>\n  <containerArt>https://image-cdn-ak.spotifycdn.com/image/ab67706c0000da84993ee084406c4089ad8f4b2a</containerArt>\n</preset>\n"
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Preset updated successfully",
+            "headers": {
+              "Content-Type": {
+                "schema": {
+                  "type": "string",
+                  "example": "application/vnd.bose.streaming-v1.2+xml"
+                }
+              },
+              "Location": {
+                "schema": {
+                  "type": "string",
+                  "example": "http://streamingqa.bose.com/account/6921042/device/587A628A4042/preset/2"
+                }
+              }
+            },
+            "content": {
+              "application/vnd.bose.streaming-v1.2+xml": {
+                "schema": {
+                  "$ref": "#/components/schemas/PresetUpdateResponse"
+                },
+                "example": "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>\n<preset buttonNumber=\"2\">\n  <containerArt>https://image-cdn-ak.spotifycdn.com/image/ab67706c0000da84993ee084406c4089ad8f4b2a</containerArt>\n  <contentItemType>tracklisturl</contentItemType>\n  <createdOn>2018-11-14T18:27:39.000+00:00</createdOn>\n  <location>/playback/container/c3BvdGlmeTpwbGF5bGlzdDoyM1NNZHlPSEE2S2t6SG9QT0o1S1E5</location>\n  <name>Radio Mix</name>\n  <source id=\"19989621\" type=\"Audio\">\n    <createdOn>2018-08-11T09:52:31.000+00:00</createdOn>\n    <credential type=\"token_version_3\">mockToken456xyz=</credential>\n    <name>mockuser5zt8py3wuxy123</name>\n    <sourceproviderid>15</sourceproviderid>\n    <sourcename>user@example.com</sourcename>\n    <sourceSettings/>\n    <updatedOn>2018-11-26T18:42:27.000+00:00</updatedOn>\n    <username>mockuser5zt8py3wuxy123</username>\n  </source>\n  <updatedOn>2025-12-28T16:38:41.000+00:00</updatedOn>\n  <username>Radio Mix</username>\n</preset>\n"
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request - Invalid request body or parameters"
+          },
+          "404": {
+            "description": "Not found - Account or device not found"
+          },
+          "500": {
+            "description": "Internal server error"
+          }
+        }
+      },
+      "delete": {
+        "summary": "Delete device preset",
+        "description": "Removes the preset at the specified button number",
+        "operationId": "deletePreset",
+        "tags": [
+          "experimental"
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/accountId"
+          },
+          {
+            "$ref": "#/components/parameters/deviceId"
+          },
+          {
+            "name": "buttonNumber",
+            "in": "path",
+            "required": true,
+            "description": "The preset button number (1-6)",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 6
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Preset deleted successfully (empty response)",
+            "headers": {
+              "Content-Type": {
+                "schema": {
+                  "type": "string",
+                  "example": "application/vnd.bose.streaming-v1.2+xml"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized - Invalid or missing Bearer token"
+          },
+          "404": {
+            "description": "Not found - Preset not found",
+            "headers": {
+              "Content-Type": {
+                "schema": {
+                  "type": "string",
+                  "example": "application/vnd.bose.streaming-v1.2+xml"
+                }
+              }
+            },
+            "content": {
+              "application/vnd.bose.streaming-v1.2+xml": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>\n<status>\n  <message>Not found</message>\n  <status-code>404</status-code>\n</status>\n"
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "summary": "Get device preset",
+        "description": "Retrieves a preset for a specific button number on the device",
+        "operationId": "getPreset",
+        "tags": [
+          "experimental"
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/accountId"
+          },
+          {
+            "$ref": "#/components/parameters/deviceId"
+          },
+          {
+            "name": "buttonNumber",
+            "in": "path",
+            "required": true,
+            "description": "Preset button number (1-6)",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 6,
+              "example": 4
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Preset retrieved successfully",
+            "headers": {
+              "Content-Type": {
+                "schema": {
+                  "type": "string",
+                  "example": "application/vnd.bose.streaming-v1.2+xml"
+                }
+              }
+            },
+            "content": {
+              "application/vnd.bose.streaming-v1.2+xml": {
+                "schema": {
+                  "$ref": "#/components/schemas/PresetUpdateResponse"
+                },
+                "example": "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>\n<preset buttonNumber=\"4\">\n  <containerArt>https://mosaic.scdn.co/300/mockimageurl</containerArt>\n  <contentItemType>tracklisturl</contentItemType>\n  <createdOn>2018-11-26T18:47:06.000+00:00</createdOn>\n  <location>/playback/container/c3BvdGlmeTpwbGF5bGlzdDoyd0JCOGIzUWhDWXd5T0d2dE9id3dI</location>\n  <name>Seasonal Mix</name>\n  <source id=\"19989621\" type=\"Audio\">\n    <createdOn>2018-08-11T09:52:31.000+00:00</createdOn>\n    <credential type=\"token_version_3\">mockToken789xyz=</credential>\n    <name>mockuser789xyz</name>\n    <sourceproviderid>15</sourceproviderid>\n    <sourcename>user@example.com</sourcename>\n    <sourceSettings/>\n    <updatedOn>2018-11-26T18:42:27.000+00:00</updatedOn>\n    <username>mockuser789xyz</username>\n  </source>\n  <updatedOn>2022-11-17T19:35:37.000+00:00</updatedOn>\n  <username>mockuser789xyz</username>\n</preset>\n"
+              }
+            }
+          },
+          "404": {
+            "description": "Preset not found",
+            "content": {
+              "application/vnd.bose.streaming-v1.2+xml": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>\n<status>\n  <message>Not found</message>\n  <status-code>404</status-code>\n</status>\n"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/streaming/account/{accountId}/full": {
+      "get": {
+        "summary": "Get full account details",
+        "description": "Retrieves complete account information including devices, presets, recents, and sources",
+        "operationId": "getFullAccount",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/accountId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response with full account details",
+            "headers": {
+              "Content-Type": {
+                "schema": {
+                  "type": "string",
+                  "example": "application/vnd.bose.streaming-v1.2+xml"
+                }
+              },
+              "METHOD_NAME": {
+                "schema": {
+                  "type": "string",
+                  "example": "getFullAccount"
+                }
+              }
+            },
+            "content": {
+              "application/vnd.bose.streaming-v1.2+xml": {
+                "schema": {
+                  "$ref": "#/components/schemas/FullAccountResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized - Invalid or missing Bearer token"
+          },
+          "403": {
+            "description": "Forbidden - Valid token but insufficient permissions"
+          },
+          "404": {
+            "description": "Not found - Account not found"
+          },
+          "500": {
+            "description": "Internal server error"
+          }
+        }
+      }
+    },
+    "/streaming/account/{accountId}/device/{deviceId}": {
+      "put": {
+        "summary": "Update device information",
+        "description": "Updates device name and metadata",
+        "operationId": "updateDevice",
+        "tags": [
+          "experimental"
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/accountId"
+          },
+          {
+            "$ref": "#/components/parameters/deviceId"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/vnd.bose.streaming-v1.2+xml": {
+              "schema": {
+                "$ref": "#/components/schemas/DeviceUpdateRequest"
+              },
+              "example": "<?xml version=\"1.0\" encoding=\"UTF-8\" ?>\n<device deviceid=\"587A628A4042\">\n  <name>Test Device</name>\n  <macaddress>587A628A4042</macaddress>\n</device>\n"
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Device updated successfully",
+            "headers": {
+              "Content-Type": {
+                "schema": {
+                  "type": "string",
+                  "example": "application/vnd.bose.streaming-v1.2+xml"
+                }
+              },
+              "Location": {
+                "schema": {
+                  "type": "string",
+                  "example": "http://streamingqa.bose.com/account/6921042/device/587A628A4042"
+                }
+              },
+              "METHOD_NAME": {
+                "schema": {
+                  "type": "string",
+                  "example": "updateDevice"
+                }
+              }
+            },
+            "content": {
+              "application/vnd.bose.streaming-v1.2+xml": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeviceUpdateResponse"
+                },
+                "example": "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>\n<device deviceid=\"587A628A4042\">\n  <createdOn>2018-08-11T08:55:25.000+00:00</createdOn>\n  <ipaddress>192.168.178.33</ipaddress>\n  <name>Test Device</name>\n  <updatedOn>2026-01-02T11:12:09.074+00:00</updatedOn>\n</device>\n"
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request - Invalid request body or parameters"
+          },
+          "401": {
+            "description": "Unauthorized - Invalid or missing Bearer token"
+          },
+          "403": {
+            "description": "Forbidden - Valid token but insufficient permissions"
+          },
+          "404": {
+            "description": "Not found - Account or device not found"
+          },
+          "500": {
+            "description": "Internal server error"
+          }
+        }
+      },
+      "delete": {
+        "summary": "Remove device from account",
+        "description": "Unpairs the device from the marge account.\nThis can be triggerd by calling:\n\n```\nPOST http://<speaker-id>:8090/setMargeAccount\nAccept: application/xml\nContent-Type: application/xml\n\n<UnPairDeviceWithAccount/>\n```\n",
+        "operationId": "removeDevice",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/accountId"
+          },
+          {
+            "$ref": "#/components/parameters/deviceId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Device removed successfully (empty response)",
+            "headers": {
+              "Content-Type": {
+                "schema": {
+                  "type": "string",
+                  "example": "application/vnd.bose.streaming-v1.2+xml"
+                }
+              },
+              "Location": {
+                "schema": {
+                  "type": "string",
+                  "example": "http://streamingqa.bose.com/account/6921042/device/587A628A4042"
+                }
+              },
+              "METHOD_NAME": {
+                "schema": {
+                  "type": "string",
+                  "example": "removeDevice"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Device does not exist",
+            "headers": {
+              "Content-Type": {
+                "schema": {
+                  "type": "string",
+                  "example": "application/vnd.bose.streaming-v1.2+xml"
+                }
+              }
+            },
+            "content": {
+              "application/vnd.bose.streaming-v1.2+xml": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>\n<status>\n  <message>Device does not exist </message>\n  <status-code>4012</status-code>\n</status>\n"
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized - Invalid or missing Bearer token"
+          }
+        }
+      }
+    },
+    "/streaming/account/{accountId}/device": {
+      "post": {
+        "summary": "Register device to account",
+        "description": "Registers/pairs a device (speaker) to a marge account.\nAssociates the device ID with the marge account ID.\nThis can be triggerd by calling:\n\n```\nPOST http://<speaker-id>:8090/setMargeAccount\nAccept: application/xml\nContent-Type: application/xml\n\n<PairDeviceWithAccount>\n  <accountId>6921042</accountId>\n  <userAuthToken>Bearer test123</userAuthToken>\n</PairDeviceWithAccount>\n```\n",
+        "operationId": "addDevice",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/accountId"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/vnd.bose.streaming-v1.2+xml": {
+              "schema": {
+                "$ref": "#/components/schemas/DeviceUpdateRequest"
+              },
+              "example": "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>\n<device deviceid=\"587A628A4042\">\n  <name>Kitchen</name>\n  <macaddress>587A628A4042</macaddress>\n</device>\n"
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Device registered successfully",
+            "headers": {
+              "Content-Type": {
+                "schema": {
+                  "type": "string",
+                  "example": "application/vnd.bose.streaming-v1.2+xml"
+                }
+              },
+              "Credentials": {
+                "schema": {
+                  "type": "string",
+                  "example": "Bearer nRW/F+ads/3fsfd//sdfs//fsdfs/qj/wer"
+                }
+              },
+              "Location": {
+                "schema": {
+                  "type": "string",
+                  "example": "http://streamingqa.bose.com/account/6921042/device/587A628A4042"
+                }
+              },
+              "METHOD_NAME": {
+                "schema": {
+                  "type": "string",
+                  "example": "addDevice"
+                }
+              }
+            },
+            "content": {
+              "application/vnd.bose.streaming-v1.2+xml": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeviceUpdateResponse"
+                },
+                "example": "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>\n<device deviceid=\"587A628A4042\">\n  <createdOn>2018-08-11T08:55:25.000+00:00</createdOn>\n  <ipaddress></ipaddress>\n  <name>Kitchen</name>\n  <updatedOn>2026-01-02T11:12:09.074+00:00</updatedOn>\n</device>\n"
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized - Invalid or missing Bearer token",
+            "content": {
+              "application/vnd.bose.streaming-v1.2+xml": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>\n<status>\n  <message>Not Authorized</message>\n  <status-code>401</status-code>\n</status>\n"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/streaming/account/{accountId}/provider_settings": {
+      "get": {
+        "summary": "Get provider settings",
+        "description": "Unclear. Returns empty 200 ok response for me",
+        "operationId": "getProviderSettings",
+        "tags": [
+          "experimental"
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/accountId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Unclear, empty response",
+            "headers": {
+              "Content-Type": {
+                "schema": {
+                  "type": "string",
+                  "example": "application/vnd.bose.streaming-v1.2+xml"
+                }
+              },
+              "METHOD_NAME": {
+                "schema": {
+                  "type": "string",
+                  "example": "getProviderSettings"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/streaming/support/power_on": {
+      "post": {
+        "summary": "Power on support",
+        "description": "Unclear. Returns 500 server error in testing.\nEndpoint called by Bose SoundTouch devices when they power on.\nReports device information and diagnostic data including IP address.\n",
+        "operationId": "powerOnSupport",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/vnd.bose.streaming-v1.2+xml": {
+              "schema": {
+                "$ref": "#/components/schemas/PowerOnRequest"
+              },
+              "example": "<?xml version=\"1.0\" encoding=\"UTF-8\" ?>\n<device-data>\n  <device id=\"587A628A4042\">\n    <serialnumber>P123456789101123456789</serialnumber>\n    <firmware-version>27.0.6.46330.5043500 epdbuild.trunk.hepdswbld04.2022-08-04T11:20:29</firmware-version>\n    <product product_code=\"SoundTouch 10 sm2\" type=\"5\">\n      <serialnumber>069236P81556160AE</serialnumber>\n    </product>\n  </device>\n  <diagnostic-data>\n    <device-landscape>\n    <rssi>Good</rssi>\n    <gateway-ip-address>192.168.178.1</gateway-ip-address>\n    <macaddresses>\n    <macaddress>587A628A4042</macaddress>\n    <macaddress>40BD32BAB0EB</macaddress>\n    </macaddresses><ip-address>192.168.178.50</ip-address>\n    <network-connection-type>Wireless</network-connection-type>\n    </device-landscape><network-landscape>\n    <network-data xmlns=\"http://www.Bose.com/Schemas/2012-12/NetworkMonitor/\" />\n    </network-landscape>\n  </diagnostic-data>\n</device-data>\n"
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successfully recorded device power on event",
+            "headers": {
+              "Content-Type": {
+                "schema": {
+                  "type": "string",
+                  "example": "application/vnd.bose.streaming-v1.2+xml"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request - Invalid request body"
+          },
+          "401": {
+            "description": "Unauthorized - Invalid or missing Bearer token"
+          },
+          "500": {
+            "description": "Server Error"
+          }
+        }
+      }
+    },
+    "/streaming/account/{accountId}/group/": {
+      "post": {
+        "summary": "Create device group",
+        "description": "Creates a new speaker group (stereo pair) with master device and roles",
+        "operationId": "createDeviceGroup",
+        "tags": [
+          "group"
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/accountId"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/vnd.bose.streaming-v1.2+xml": {
+              "schema": {
+                "$ref": "#/components/schemas/GroupRequest"
+              },
+              "example": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<group>\n  <masterDeviceId>587A628A4042</masterDeviceId>\n  <name>Living Room Stereo</name>\n  <roles>\n    <groupRole>\n      <deviceId>587A628A4042</deviceId>\n      <role>LEFT</role>\n    </groupRole>\n    <groupRole>\n      <deviceId>44EAD8A18888</deviceId>\n      <role>RIGHT</role>\n    </groupRole>\n  </roles>\n</group>\n"
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Group created successfully",
+            "headers": {
+              "Content-Type": {
+                "schema": {
+                  "type": "string",
+                  "example": "application/vnd.bose.streaming-v1.2+xml"
+                }
+              }
+            },
+            "content": {
+              "application/vnd.bose.streaming-v1.2+xml": {
+                "schema": {
+                  "$ref": "#/components/schemas/GroupResponse"
+                },
+                "example": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<group id=\"1225842\">\n  <masterDeviceId>587A628A4042</masterDeviceId>\n  <name>Living Room Stereo</name>\n  <roles>\n    <groupRole>\n      <deviceId>587A628A4042</deviceId>\n      <role>LEFT</role>\n    </groupRole>\n    <groupRole>\n      <deviceId>44EAD8A18888</deviceId>\n      <role>RIGHT</role>\n    </groupRole>\n  </roles>\n</group>\n"
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request - Device already in group",
+            "content": {
+              "application/vnd.bose.streaming-v1.2+xml": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<error>\n  <status-code>4041</status-code>\n  <message>Device 587A628A4042 already belongs to a group</message>\n</error>\n"
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized - Invalid or missing Bearer token"
+          },
+          "500": {
+            "description": "Internal server error"
+          }
+        }
+      }
+    },
+    "/streaming/account/{accountId}/group/{groupId}": {
+      "delete": {
+        "summary": "Delete device group",
+        "description": "Deletes an existing device group (stereo pair) by its ID",
+        "operationId": "deleteDeviceGroup",
+        "tags": [
+          "group"
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/accountId"
+          },
+          {
+            "name": "groupId",
+            "in": "path",
+            "required": true,
+            "description": "Unique identifier of the group to delete",
+            "schema": {
+              "type": "string"
+            },
+            "example": "1225842"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Group deleted successfully (empty response body)",
+            "headers": {
+              "Content-Type": {
+                "schema": {
+                  "type": "string",
+                  "example": "application/vnd.bose.streaming-v1.2+xml"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request - Group not found",
+            "content": {
+              "application/vnd.bose.streaming-v1.2+xml": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<status>\n  <message>Device Group not found </message>\n  <status-code>4040</status-code>\n</status>\n"
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized - Invalid or missing Bearer token"
+          },
+          "500": {
+            "description": "Internal server error"
+          }
+        }
+      },
+      "put": {
+        "summary": "Update device group",
+        "description": "Updates an existing device group's name and/or master device",
+        "operationId": "updateDeviceGroup",
+        "tags": [
+          "group"
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/accountId"
+          },
+          {
+            "name": "groupId",
+            "in": "path",
+            "required": true,
+            "description": "Unique identifier of the group to update",
+            "schema": {
+              "type": "string"
+            },
+            "example": "1225842"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/vnd.bose.streaming-v1.2+xml": {
+              "schema": {
+                "$ref": "#/components/schemas/GroupUpdateRequest"
+              },
+              "example": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<group>\n  <masterDeviceId>44EAD8A18888</masterDeviceId>\n  <name>Updated Stereo</name>\n</group>\n"
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Group updated successfully",
+            "headers": {
+              "Content-Type": {
+                "schema": {
+                  "type": "string",
+                  "example": "application/vnd.bose.streaming-v1.2+xml"
+                }
+              }
+            },
+            "content": {
+              "application/vnd.bose.streaming-v1.2+xml": {
+                "schema": {
+                  "$ref": "#/components/schemas/GroupResponse"
+                },
+                "example": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<group id=\"1225842\">\n  <masterDeviceId>44EAD8A18888</masterDeviceId>\n  <name>Updated Stereo</name>\n  <roles>\n    <groupRole>\n      <deviceId>587A628A4042</deviceId>\n      <role>LEFT</role>\n    </groupRole>\n    <groupRole>\n      <deviceId>44EAD8A18888</deviceId>\n      <role>RIGHT</role>\n    </groupRole>\n  </roles>\n</group>\n"
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request - Group not found",
+            "content": {
+              "application/vnd.bose.streaming-v1.2+xml": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "examples": {
+                  "groupNotFound": {
+                    "summary": "Group not found",
+                    "value": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<status>\n  <message>Device Group not found </message>\n  <status-code>4040</status-code>\n</status>\n"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized - Invalid or missing Bearer token"
+          },
+          "500": {
+            "description": "Internal server error"
+          }
+        }
+      }
+    },
+    "/streaming/account/{accountId}/device/{deviceId}/group/": {
+      "get": {
+        "summary": "Get device group",
+        "description": "Retrieves group information for a device.\nReturns an empty group element if the device is not in a group\n",
+        "operationId": "getDeviceGroup",
+        "tags": [
+          "group"
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/accountId"
+          },
+          {
+            "$ref": "#/components/parameters/deviceId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response.\nReturns full group information if device is in a group,\nor empty group element if not.\n",
+            "headers": {
+              "Content-Type": {
+                "schema": {
+                  "type": "string",
+                  "example": "application/vnd.bose.streaming-v1.2+xml"
+                }
+              }
+            },
+            "content": {
+              "application/vnd.bose.streaming-v1.2+xml": {
+                "schema": {
+                  "$ref": "#/components/schemas/GroupResponse"
+                },
+                "examples": {
+                  "deviceInGroup": {
+                    "summary": "Device is in a group",
+                    "value": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<group id=\"1225842\">\n  <masterDeviceId>587A628A4042</masterDeviceId>\n  <name>Living Room Stereo</name>\n  <roles>\n    <groupRole>\n      <deviceId>587A628A4042</deviceId>\n      <role>LEFT</role>\n    </groupRole>\n    <groupRole>\n      <deviceId>44EAD8A18888</deviceId>\n      <role>RIGHT</role>\n    </groupRole>\n  </roles>\n</group>\n"
+                  },
+                  "deviceNotInGroup": {
+                    "summary": "Device is not in a group",
+                    "value": "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?><group/>\n"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request - Device does not exist",
+            "content": {
+              "application/vnd.bose.streaming-v1.2+xml": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>\n<status>\n  <message>Device does not exist</message>\n  <status-code>4012</status-code>\n</status>\n"
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized - Invalid or missing Bearer token"
+          },
+          "403": {
+            "description": "Forbidden - Valid token but insufficient permissions"
+          },
+          "500": {
+            "description": "Internal server error"
+          }
+        }
+      }
+    },
+    "/oauth/device/{deviceId}/music/musicprovider/{providerId}/token/{tokenType}": {
+      "post": {
+        "summary": "Refresh OAuth token",
+        "description": "Refreshes an OAuth token for a specific music provider",
+        "operationId": "refreshOAuthToken",
+        "tags": [
+          "oauth"
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "deviceId",
+            "in": "path",
+            "required": true,
+            "description": "Device identifier",
+            "schema": {
+              "type": "string",
+              "example": "587A628A4042"
+            }
+          },
+          {
+            "name": "providerId",
+            "in": "path",
+            "required": true,
+            "description": "Music provider identifier (e.g., 15 for Spotify)",
+            "schema": {
+              "type": "string",
+              "example": "15"
+            }
+          },
+          {
+            "name": "tokenType",
+            "in": "path",
+            "required": true,
+            "description": "Token type identifier",
+            "schema": {
+              "type": "string",
+              "example": "cs3"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OAuthTokenRequest"
+              },
+              "example": {
+                "code": "",
+                "grant_type": "refresh_token",
+                "redirect_uri": "",
+                "refresh_token": "AQC-x0O-W2aVur-OIA"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Token refreshed successfully",
+            "headers": {
+              "Content-Type": {
+                "schema": {
+                  "type": "string",
+                  "example": "application/json"
+                }
+              },
+              "Content-Length": {
+                "schema": {
+                  "type": "string",
+                  "example": "633"
+                }
+              },
+              "Connection": {
+                "schema": {
+                  "type": "string",
+                  "example": "keep-alive"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OAuthTokenResponse"
+                },
+                "example": {
+                  "access_token": "123fooAccessExampleToken",
+                  "token_type": "Bearer",
+                  "expires_in": 3600,
+                  "scope": "playlist-read-private playlist-read-collaborative streaming user-library-read user-library-modify playlist-modify-private playlist-modify-public user-read-email user-read-private user-top-read"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request - Invalid request body or parameters"
+          },
+          "401": {
+            "description": "Unauthorized - Invalid or missing Bearer token"
+          },
+          "403": {
+            "description": "Forbidden - Valid token but insufficient permissions"
+          },
+          "404": {
+            "description": "Not found - Device or provider not found"
+          },
+          "500": {
+            "description": "Internal server error"
+          }
+        }
+      }
+    },
+    "/streaming/software/update/account/{accountId}": {
+      "get": {
+        "summary": "Get software update information",
+        "description": "Retrieves software update information for an account",
+        "operationId": "getSoftwareUpdate",
+        "tags": [
+          "experimental"
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/accountId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response with software update information",
+            "headers": {
+              "Content-Type": {
+                "schema": {
+                  "type": "string",
+                  "example": "application/vnd.bose.streaming-v1.2+xml"
+                }
+              }
+            },
+            "content": {
+              "application/vnd.bose.streaming-v1.2+xml": {
+                "schema": {
+                  "$ref": "#/components/schemas/SoftwareUpdateResponse"
+                },
+                "example": "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>\n<software_update>\n  <softwareUpdateLocation></softwareUpdateLocation>\n</software_update>\n"
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized - Invalid or missing Bearer token"
+          },
+          "403": {
+            "description": "Forbidden - Valid token but insufficient permissions"
+          },
+          "404": {
+            "description": "Not found - Account not found"
+          },
+          "500": {
+            "description": "Internal server error"
+          }
+        }
+      }
+    },
+    "/streaming/support/customersupport": {
+      "post": {
+        "summary": "Submit customer support data",
+        "description": "Endpoint called by Bose SoundTouch devices to submit customer support diagnostic data.\nReports device information, firmware version, product details, and network diagnostic data.\nI believe the call is triggered when opening CS pages in the Bose Soundtuch app.\n",
+        "operationId": "customerSupport",
+        "tags": [
+          "experimental"
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/vnd.bose.streaming-v1.2+xml": {
+              "schema": {
+                "$ref": "#/components/schemas/CustomerSupportRequest"
+              },
+              "example": "<?xml version=\"1.0\" encoding=\"UTF-8\" ?><device-data><device id=\"587A628A4042\"><serialnumber>P123456789101123456789</serialnumber><firmware-version>27.0.6.46330.5043500 epdbuild.trunk.hepdswbld04.2022-08-04T11:20:29</firmware-version><product product_code=\"SoundTouch 10 sm2\" type=\"5\"><serialnumber>069236P81556160AE</serialnumber></product></device><diagnostic-data><device-landscape><rssi>Good</rssi><gateway-ip-address>192.168.1.1</gateway-ip-address><macaddresses><macaddress>587A628A4042</macaddress><macaddress>40BD32BAB0EB</macaddress></macaddresses><ip-address>192.168.1.100</ip-address><network-connection-type>Wireless</network-connection-type></device-landscape><network-landscape><network-data xmlns=\"http://www.Bose.com/Schemas/2012-12/NetworkMonitor/\" /></network-landscape></diagnostic-data></device-data>\n"
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successfully received customer support data",
+            "headers": {
+              "Content-Type": {
+                "schema": {
+                  "type": "string",
+                  "example": "application/vnd.bose.streaming-v1.2+xml"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request - Invalid request body"
+          },
+          "401": {
+            "description": "Unauthorized - Invalid or missing Bearer token"
+          },
+          "500": {
+            "description": "Server Error"
+          }
+        }
+      }
+    },
+    "/streaming/device/{deviceId}/streaming_token": {
+      "get": {
+        "summary": "Get streaming token",
+        "description": "Unclear. Returns 200 ok response with empty body\nand an `Authorization` header with a value containing A-Z, a-z, 0-9, +, /\n",
+        "operationId": "getStreamingToken",
+        "tags": [
+          "experimental"
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/deviceId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Token refreshed successfully",
+            "headers": {
+              "Authorization": {
+                "schema": {
+                  "type": "string",
+                  "example": "1a2312e/423f243f+31f/qwe43r3"
+                },
+                "description": "Refreshed Bearer token"
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized - Invalid or missing Bearer token"
+          },
+          "403": {
+            "description": "Forbidden - Valid token but insufficient permissions"
+          },
+          "404": {
+            "description": "Not found - Device not found"
+          },
+          "500": {
+            "description": "Internal server error"
+          }
+        }
+      }
+    },
+    "/v1/scmudc/{deviceId}": {
+      "post": {
+        "summary": "Submit device events",
+        "description": "Endpoint called by Bose SoundTouch devices to submit event data.\nEvents include playback state changes, source changes, button presses, and more.\nEvery submitted event has a `type` field. Types seen in the wild include:\n\n- art-changed\n- favorite-changed\n- item-started\n- masterdevice-changed\n- play-item\n- play-state-changed\n- playpause-pressed\n- power-pressed\n- preset-pressed\n- shuffle-state-changed\n- skip-forward-pressed\n- source-state-changed\n- system-state-changed\n- volume-change\n",
+        "operationId": "submitDeviceEvents",
+        "tags": [
+          "events"
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "deviceId",
+            "in": "path",
+            "required": true,
+            "description": "Device identifier",
+            "schema": {
+              "type": "string",
+              "example": "587A628A4042"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DeviceEventsRequest"
+              },
+              "example": {
+                "envelope": {
+                  "monoTime": 94118263,
+                  "payloadProtocolVersion": "3.1",
+                  "payloadType": "scmudc",
+                  "protocolVersion": "1.0",
+                  "time": "2026-01-09T08:02:32.874426+00:00",
+                  "uniqueId": "587A628A4042"
+                },
+                "payload": {
+                  "deviceInfo": {
+                    "boseID": "6921042",
+                    "deviceID": "587A628A4042",
+                    "deviceType": "SoundTouch 20",
+                    "serialNumber": "P123456789101123456789",
+                    "softwareVersion": "27.0.6.46330.5043500 epdbuild.trunk.hepdswbld04.2022-08-04T11:20:29",
+                    "systemSerialNumber": "069236P81556160AE"
+                  },
+                  "events": [
+                    {
+                      "data": {
+                        "source-state": "SPOTIFY"
+                      },
+                      "monoTime": 94118263,
+                      "time": "2026-01-09T08:02:32.873379+00:00",
+                      "type": "source-state-changed"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successfully received device events"
+          },
+          "400": {
+            "description": "Bad request - Invalid request body"
+          },
+          "401": {
+            "description": "Unauthorized - Invalid or missing Bearer token"
+          },
+          "500": {
+            "description": "Server Error"
+          }
+        }
+      }
+    },
+    "/bmx/registry/v1/services": {
+      "get": {
+        "summary": "Get BMX services registry",
+        "description": "Returns the list of available BMX streaming services (TuneIn, Custom Stations, SiriusXM, Radioplayer).\nThis endpoint provides service discovery for streaming audio providers.\n",
+        "operationId": "getBmxServices",
+        "tags": [
+          "bmx"
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response with list of BMX services",
+            "headers": {
+              "Content-Type": {
+                "schema": {
+                  "type": "string",
+                  "example": "application/json"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BmxServicesResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized - Invalid or missing Bearer token"
+          },
+          "500": {
+            "description": "Internal server error"
+          }
+        }
+      }
+    },
+    "/bmx/registry/v1/servicesAvailability": {
+      "get": {
+        "summary": "Get BMX services availability",
+        "description": "Returns which streaming services can be added or removed from the user's account.\n",
+        "operationId": "getBmxServicesAvailability",
+        "tags": [
+          "bmx"
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response with services availability",
+            "headers": {
+              "Content-Type": {
+                "schema": {
+                  "type": "string",
+                  "example": "application/json"
+                }
+              },
+              "X-Bmx-Adapter-Version": {
+                "schema": {
+                  "type": "string",
+                  "example": "master.4.40"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BmxServicesAvailabilityResponse"
+                },
+                "example": {
+                  "services": [
+                    {
+                      "canAdd": true,
+                      "canRemove": false,
+                      "service": "TUNEIN"
+                    },
+                    {
+                      "canAdd": false,
+                      "canRemove": true,
+                      "service": "SIRIUSXM_EVEREST"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized - Invalid or missing Bearer token"
+          },
+          "500": {
+            "description": "Internal server error"
+          }
+        }
+      }
+    },
+    "/bmx/tunein/v1/playback/station/{stationId}": {
+      "get": {
+        "summary": "Get TuneIn station playback information",
+        "description": "Returns stream URLs and metadata for a TuneIn radio station.\nFetches real-time data from TuneIn APIs including available stream URLs,\nstation name, logo, and playback configuration.\n",
+        "operationId": "getTuneInPlayback",
+        "tags": [
+          "bmx"
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "stationId",
+            "in": "path",
+            "required": true,
+            "description": "TuneIn station identifier (e.g., 's80044')",
+            "schema": {
+              "type": "string",
+              "example": "s80044"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response with station playback information",
+            "headers": {
+              "Content-Type": {
+                "schema": {
+                  "type": "string",
+                  "example": "application/json"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BmxPlaybackResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized - Invalid or missing Bearer token"
+          },
+          "404": {
+            "description": "Station not found"
+          },
+          "500": {
+            "description": "Internal server error"
+          }
+        }
+      }
+    },
+    "/core02/svc-bmx-adapter-orion/prod/orion/station": {
+      "get": {
+        "summary": "Get custom stream playback information",
+        "description": "Returns playback information for custom radio streams.\nThe stream data is provided as base64-encoded JSON in the 'data' query parameter.\nSupports user-defined radio station URLs.\n",
+        "operationId": "getCustomStreamPlayback",
+        "tags": [
+          "bmx"
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "data",
+            "in": "query",
+            "required": true,
+            "description": "Base64-encoded JSON containing stream information.\nJSON structure: {\"streamUrl\": \"...\", \"imageUrl\": \"...\", \"name\": \"...\"}\n",
+            "schema": {
+              "type": "string",
+              "example": "eyJzdHJlYW1VcmwiOiJodHRwOi8vZXhhbXBsZS5jb20vc3RyZWFtIiwiaW1hZ2VVcmwiOiJodHRwOi8vZXhhbXBsZS5jb20vaW1nLnBuZyIsIm5hbWUiOiJUZXN0IFN0YXRpb24ifQ=="
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response with custom stream playback information",
+            "headers": {
+              "Content-Type": {
+                "schema": {
+                  "type": "string",
+                  "example": "application/json"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BmxPlaybackResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request - Invalid or missing data parameter"
+          },
+          "401": {
+            "description": "Unauthorized - Invalid or missing Bearer token"
+          },
+          "500": {
+            "description": "Internal server error"
+          }
+        }
+      }
+    },
+    "/bmx/tunein/v1/token": {
+      "post": {
+        "summary": "Refresh TuneIn authentication token",
+        "description": "Refreshes a TuneIn JWT authentication token using a refresh token.\nRequired for maintaining access to TuneIn authenticated features.\n",
+        "operationId": "refreshTuneInToken",
+        "tags": [
+          "bmx"
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BmxTokenRequest"
+              },
+              "example": {
+                "grant_type": "refresh_token",
+                "refresh_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Token refreshed successfully",
+            "headers": {
+              "Content-Type": {
+                "schema": {
+                  "type": "string",
+                  "example": "application/json"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BmxTokenResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request - Invalid request body"
+          },
+          "401": {
+            "description": "Unauthorized - Invalid or expired refresh token"
+          },
+          "500": {
+            "description": "Internal server error"
+          }
+        }
+      }
+    },
+    "/bmx/tunein/v1/report": {
+      "post": {
+        "summary": "Report TuneIn analytics",
+        "description": "Analytics endpoint for reporting playback events to TuneIn.\nThis is a stub implementation that accepts and logs events but does not forward them.\n",
+        "operationId": "reportTuneInAnalytics",
+        "tags": [
+          "bmx"
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "stream_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "guide_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "listen_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "stream_type",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "example": "liveRadio"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BmxReportRequest"
+              },
+              "example": {
+                "timeStamp": "2025-10-31T05:38:55+0000",
+                "eventType": "START",
+                "reason": "USER_SELECT_PLAYABLE",
+                "timeIntoTrack": 0,
+                "playbackDelay": 6664
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Analytics event received",
+            "headers": {
+              "Content-Type": {
+                "schema": {
+                  "type": "string",
+                  "example": "application/json"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BmxReportResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request - Invalid request body"
+          },
+          "401": {
+            "description": "Unauthorized - Invalid or missing Bearer token"
+          },
+          "500": {
+            "description": "Internal server error"
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "BearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT",
+        "description": "Bearer token authentication"
+      }
+    },
+    "parameters": {
+      "accountId": {
+        "name": "accountId",
+        "in": "path",
+        "required": true,
+        "description": "Account identifier",
+        "schema": {
+          "type": "string",
+          "pattern": "^[0-9a-zA-Z-]+$",
+          "example": "6921042"
+        }
+      },
+      "deviceId": {
+        "name": "deviceId",
+        "in": "path",
+        "required": true,
+        "description": "Device identifier",
+        "schema": {
+          "type": "string",
+          "example": "587A628A4042"
+        }
+      }
+    },
+    "schemas": {
+      "SourceProvidersResponse": {
+        "type": "object",
+        "description": "XML response containing list of source providers",
+        "xml": {
+          "name": "sourceProviders"
+        },
+        "properties": {
+          "sourceprovider": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SourceProvider"
+            },
+            "xml": {
+              "wrapped": false
+            }
+          }
+        }
+      },
+      "SourceProvider": {
+        "type": "object",
+        "description": "A streaming source provider",
+        "xml": {
+          "name": "sourceprovider"
+        },
+        "required": [
+          "id",
+          "createdOn",
+          "name",
+          "updatedOn"
+        ],
+        "properties": {
+          "id": {
+            "type": "integer",
+            "description": "Unique identifier for the source provider",
+            "xml": {
+              "attribute": true
+            },
+            "example": 1
+          },
+          "createdOn": {
+            "type": "string",
+            "format": "date-time",
+            "description": "ISO 8601 timestamp when the provider was created",
+            "example": "2012-09-19T12:43:00.000+00:00"
+          },
+          "name": {
+            "type": "string",
+            "description": "Name/type of the streaming source provider",
+            "example": "PANDORA"
+          },
+          "updatedOn": {
+            "type": "string",
+            "format": "date-time",
+            "description": "ISO 8601 timestamp when the provider was last updated",
+            "example": "2012-09-19T12:43:00.000+00:00"
+          }
+        }
+      },
+      "RecentItemRequest": {
+        "type": "object",
+        "description": "XML request body for adding a recent item",
+        "xml": {
+          "name": "recent"
+        },
+        "required": [
+          "lastplayedat",
+          "sourceid",
+          "name",
+          "location",
+          "contentItemType"
+        ],
+        "properties": {
+          "lastplayedat": {
+            "type": "string",
+            "format": "date-time",
+            "description": "ISO 8601 timestamp when the item was last played",
+            "example": "2025-11-01T17:32:59+00:00"
+          },
+          "sourceid": {
+            "type": "string",
+            "description": "Identifier of the source",
+            "example": "19989313"
+          },
+          "name": {
+            "type": "string",
+            "description": "Name of the content item",
+            "example": "Radio TEDDY"
+          },
+          "location": {
+            "type": "string",
+            "description": "Location/path of the content item",
+            "example": "/v1/playback/station/s80044"
+          },
+          "contentItemType": {
+            "type": "string",
+            "description": "Type of the content item",
+            "example": "stationurl"
+          }
+        }
+      },
+      "RecentItemResponse": {
+        "type": "object",
+        "description": "XML response containing recent item details",
+        "xml": {
+          "name": "recent"
+        },
+        "required": [
+          "id",
+          "contentItemType",
+          "createdOn",
+          "lastplayedat",
+          "location",
+          "name",
+          "source",
+          "sourceid",
+          "updatedOn"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Unique identifier for the recent item",
+            "xml": {
+              "attribute": true
+            },
+            "example": "2244536335"
+          },
+          "contentItemType": {
+            "type": "string",
+            "description": "Type of the content item",
+            "example": "stationurl"
+          },
+          "createdOn": {
+            "type": "string",
+            "format": "date-time",
+            "description": "ISO 8601 timestamp when the item was created",
+            "example": "2018-11-27T18:20:01.000+00:00"
+          },
+          "lastplayedat": {
+            "type": "string",
+            "format": "date-time",
+            "description": "ISO 8601 timestamp when the item was last played",
+            "example": "2025-11-01T17:32:59.000+00:00"
+          },
+          "location": {
+            "type": "string",
+            "description": "Location/path of the content item",
+            "example": "/v1/playback/station/s80044"
+          },
+          "name": {
+            "type": "string",
+            "description": "Name of the content item",
+            "example": "Radio TEDDY"
+          },
+          "source": {
+            "$ref": "#/components/schemas/Source"
+          },
+          "sourceid": {
+            "type": "string",
+            "description": "Identifier of the source",
+            "example": "19989313"
+          },
+          "updatedOn": {
+            "type": "string",
+            "format": "date-time",
+            "description": "ISO 8601 timestamp when the item was last updated",
+            "example": "2025-11-01T17:33:00.574+00:00"
+          }
+        }
+      },
+      "Source": {
+        "type": "object",
+        "description": "Source information for accounts, devices, presets, and recent items",
+        "xml": {
+          "name": "source"
+        },
+        "required": [
+          "id",
+          "type",
+          "createdOn",
+          "credential",
+          "name",
+          "sourceproviderid",
+          "sourcename",
+          "sourceSettings",
+          "updatedOn",
+          "username"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Unique identifier for the source",
+            "xml": {
+              "attribute": true
+            },
+            "example": "19989313"
+          },
+          "type": {
+            "type": "string",
+            "description": "Type of the source",
+            "xml": {
+              "attribute": true
+            },
+            "example": "Audio"
+          },
+          "createdOn": {
+            "type": "string",
+            "format": "date-time",
+            "description": "ISO 8601 timestamp when the source was created",
+            "example": "2018-08-11T08:55:41.000+00:00"
+          },
+          "credential": {
+            "$ref": "#/components/schemas/Credential"
+          },
+          "name": {
+            "type": "string",
+            "description": "Name of the source",
+            "example": ""
+          },
+          "sourceproviderid": {
+            "type": "string",
+            "description": "Identifier of the source provider",
+            "example": "25"
+          },
+          "sourcename": {
+            "type": "string",
+            "description": "Name of the source",
+            "example": ""
+          },
+          "sourceSettings": {
+            "type": "object",
+            "description": "Source settings (empty object)",
+            "xml": {
+              "name": "sourceSettings"
+            }
+          },
+          "updatedOn": {
+            "type": "string",
+            "format": "date-time",
+            "description": "ISO 8601 timestamp when the source was last updated",
+            "example": "2019-07-20T17:48:31.000+00:00"
+          },
+          "username": {
+            "type": "string",
+            "description": "Username associated with the source",
+            "example": ""
+          }
+        }
+      },
+      "Credential": {
+        "type": "object",
+        "description": "Credential information for a source",
+        "xml": {
+          "name": "credential"
+        },
+        "required": [
+          "type",
+          "value"
+        ],
+        "properties": {
+          "type": {
+            "type": "string",
+            "description": "Type of credential",
+            "xml": {
+              "attribute": true
+            },
+            "example": "token"
+          },
+          "value": {
+            "type": "string",
+            "description": "Credential value/token",
+            "x-isXmlText": true,
+            "example": "eyDu="
+          }
+        }
+      },
+      "OAuthTokenRequest": {
+        "type": "object",
+        "description": "OAuth token refresh request",
+        "required": [
+          "grant_type",
+          "refresh_token"
+        ],
+        "properties": {
+          "code": {
+            "type": "string",
+            "description": "Authorization code (empty for refresh token flow)",
+            "example": ""
+          },
+          "grant_type": {
+            "type": "string",
+            "description": "OAuth grant type",
+            "example": "refresh_token"
+          },
+          "redirect_uri": {
+            "type": "string",
+            "description": "Redirect URI (empty for refresh token flow)",
+            "example": ""
+          },
+          "refresh_token": {
+            "type": "string",
+            "description": "Refresh token to exchange for new access token",
+            "example": "AQC-x0O-W2aVur-OIA"
+          }
+        }
+      },
+      "OAuthTokenResponse": {
+        "type": "object",
+        "description": "OAuth token response",
+        "required": [
+          "access_token",
+          "token_type",
+          "expires_in"
+        ],
+        "properties": {
+          "access_token": {
+            "type": "string",
+            "description": "Access token for API authorization",
+            "example": "123fooAccessExampleToken"
+          },
+          "token_type": {
+            "type": "string",
+            "description": "Type of the token",
+            "example": "Bearer"
+          },
+          "expires_in": {
+            "type": "integer",
+            "description": "Token expiration time in seconds",
+            "example": 3600
+          },
+          "scope": {
+            "type": "string",
+            "description": "Space-separated list of granted scopes",
+            "example": "playlist-read-private playlist-read-collaborative streaming user-library-read user-library-modify playlist-modify-private playlist-modify-public user-read-email user-read-private user-top-read"
+          }
+        }
+      },
+      "FullAccountResponse": {
+        "type": "object",
+        "description": "XML response containing complete account information",
+        "xml": {
+          "name": "account"
+        },
+        "required": [
+          "id",
+          "accountStatus",
+          "devices",
+          "mode",
+          "preferredLanguage",
+          "sources"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Account identifier",
+            "xml": {
+              "attribute": true
+            },
+            "example": "6921042"
+          },
+          "accountStatus": {
+            "type": "string",
+            "description": "Status of the account",
+            "example": "CHANGE_PASSWORD"
+          },
+          "devices": {
+            "$ref": "#/components/schemas/DevicesContainer"
+          },
+          "mode": {
+            "type": "string",
+            "description": "Account mode",
+            "example": "global"
+          },
+          "preferredLanguage": {
+            "type": "string",
+            "description": "Preferred language code",
+            "example": "de"
+          },
+          "sources": {
+            "$ref": "#/components/schemas/SourcesContainer"
+          }
+        }
+      },
+      "DevicesContainer": {
+        "type": "object",
+        "description": "Container for devices",
+        "xml": {
+          "name": "devices"
+        },
+        "properties": {
+          "device": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Device"
+            },
+            "xml": {
+              "wrapped": false
+            }
+          }
+        }
+      },
+      "Device": {
+        "type": "object",
+        "description": "Device information",
+        "xml": {
+          "name": "device"
+        },
+        "required": [
+          "deviceid",
+          "attachedProduct",
+          "createdOn",
+          "firmwareVersion",
+          "ipaddress",
+          "name",
+          "presets",
+          "recents",
+          "serialNumber",
+          "updatedOn"
+        ],
+        "properties": {
+          "deviceid": {
+            "type": "string",
+            "description": "Device identifier",
+            "xml": {
+              "attribute": true
+            },
+            "example": "123980WER"
+          },
+          "attachedProduct": {
+            "$ref": "#/components/schemas/AttachedProduct"
+          },
+          "createdOn": {
+            "type": "string",
+            "format": "date-time",
+            "description": "ISO 8601 timestamp when the device was created",
+            "example": "2018-08-11T08:55:25.000+00:00"
+          },
+          "firmwareVersion": {
+            "type": "string",
+            "description": "Firmware version of the device",
+            "example": "27.0.6.46330.5043500 epdbuild.trunk.hepdswbld04.2022-08-04T11:20:29"
+          },
+          "ipaddress": {
+            "type": "string",
+            "description": "IP address of the device",
+            "example": "192.168.178.2"
+          },
+          "name": {
+            "type": "string",
+            "description": "Name of the device",
+            "example": "Foobar"
+          },
+          "presets": {
+            "$ref": "#/components/schemas/PresetsContainer"
+          },
+          "recents": {
+            "$ref": "#/components/schemas/RecentsContainer"
+          },
+          "serialNumber": {
+            "type": "string",
+            "description": "Serial number of the device",
+            "example": "PUP43434234"
+          },
+          "updatedOn": {
+            "type": "string",
+            "format": "date-time",
+            "description": "ISO 8601 timestamp when the device was last updated",
+            "example": "2025-09-06T08:25:49.000+00:00"
+          }
+        }
+      },
+      "AttachedProduct": {
+        "type": "object",
+        "description": "Product attached to the device",
+        "xml": {
+          "name": "attachedProduct"
+        },
+        "required": [
+          "product_code",
+          "components",
+          "productlabel",
+          "serialnumber"
+        ],
+        "properties": {
+          "product_code": {
+            "type": "string",
+            "description": "Product code",
+            "xml": {
+              "attribute": true
+            },
+            "example": "SoundTouch 10 sm2"
+          },
+          "components": {
+            "type": "object",
+            "description": "Components (empty object)",
+            "xml": {
+              "name": "components"
+            }
+          },
+          "productlabel": {
+            "type": "string",
+            "description": "Product label",
+            "example": "soundtouch_10"
+          },
+          "serialnumber": {
+            "type": "string",
+            "description": "Serial number of the product",
+            "example": "123SERIA1"
+          }
+        }
+      },
+      "PresetsContainer": {
+        "type": "object",
+        "description": "Container for presets",
+        "xml": {
+          "name": "presets"
+        },
+        "properties": {
+          "preset": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Preset"
+            },
+            "xml": {
+              "wrapped": false
+            }
+          }
+        }
+      },
+      "Preset": {
+        "type": "object",
+        "description": "Preset configuration",
+        "xml": {
+          "name": "preset"
+        },
+        "required": [
+          "buttonNumber",
+          "containerArt",
+          "contentItemType",
+          "createdOn",
+          "location",
+          "name",
+          "source",
+          "updatedOn",
+          "username"
+        ],
+        "properties": {
+          "buttonNumber": {
+            "type": "integer",
+            "description": "Button number for the preset",
+            "xml": {
+              "attribute": true
+            },
+            "example": 1
+          },
+          "containerArt": {
+            "type": "string",
+            "description": "URL to the container art",
+            "example": "https://example.org/s80044q.png"
+          },
+          "contentItemType": {
+            "type": "string",
+            "description": "Type of content item",
+            "example": "stationurl"
+          },
+          "createdOn": {
+            "type": "string",
+            "format": "date-time",
+            "description": "ISO 8601 timestamp when the preset was created",
+            "example": "2018-11-26T18:40:45.000+00:00"
+          },
+          "location": {
+            "type": "string",
+            "description": "Location/path of the content",
+            "example": "/v1/playback/station/s80044"
+          },
+          "name": {
+            "type": "string",
+            "description": "Name of the preset",
+            "example": "Radio Foobar"
+          },
+          "source": {
+            "$ref": "#/components/schemas/Source"
+          },
+          "updatedOn": {
+            "type": "string",
+            "format": "date-time",
+            "description": "ISO 8601 timestamp when the preset was last updated",
+            "example": "2018-11-26T18:40:45.000+00:00"
+          },
+          "username": {
+            "type": "string",
+            "example": "Radio Foobar"
+          }
+        }
+      },
+      "PresetUpdateRequest": {
+        "type": "object",
+        "description": "Request body for updating a preset",
+        "xml": {
+          "name": "preset"
+        },
+        "required": [
+          "buttonNumber",
+          "sourceid",
+          "name",
+          "username",
+          "location",
+          "contentItemType",
+          "containerArt"
+        ],
+        "properties": {
+          "buttonNumber": {
+            "type": "integer",
+            "description": "Button number for the preset",
+            "xml": {
+              "attribute": true
+            },
+            "example": 2
+          },
+          "sourceid": {
+            "type": "string",
+            "description": "Identifier of the source",
+            "example": "19989621"
+          },
+          "name": {
+            "type": "string",
+            "description": "Name of the preset",
+            "example": "Radio Mix"
+          },
+          "username": {
+            "type": "string",
+            "description": "Username associated with the preset",
+            "example": "Radio Mix"
+          },
+          "location": {
+            "type": "string",
+            "description": "Location/path of the content",
+            "example": "/playback/container/c3BvdGlmeTpwbGF5bGlzdDoyM1NNZHlPSEE2S2t6SG9QT0o1S1E5"
+          },
+          "contentItemType": {
+            "type": "string",
+            "description": "Type of content item",
+            "example": "tracklisturl"
+          },
+          "containerArt": {
+            "type": "string",
+            "description": "URL to the container art",
+            "example": "https://image-cdn-ak.spotifycdn.com/image/ab67706c0000da84993ee084406c4089ad8f4b2a"
+          }
+        }
+      },
+      "PresetUpdateResponse": {
+        "type": "object",
+        "description": "XML response containing updated preset details",
+        "xml": {
+          "name": "preset"
+        },
+        "required": [
+          "buttonNumber",
+          "containerArt",
+          "contentItemType",
+          "createdOn",
+          "location",
+          "name",
+          "source",
+          "updatedOn",
+          "username"
+        ],
+        "properties": {
+          "buttonNumber": {
+            "type": "integer",
+            "description": "Button number for the preset",
+            "xml": {
+              "attribute": true
+            },
+            "example": 2
+          },
+          "containerArt": {
+            "type": "string",
+            "description": "URL to the container art",
+            "example": "https://image-cdn-ak.spotifycdn.com/image/ab67706c0000da84993ee084406c4089ad8f4b2a"
+          },
+          "contentItemType": {
+            "type": "string",
+            "description": "Type of content item",
+            "example": "tracklisturl"
+          },
+          "createdOn": {
+            "type": "string",
+            "format": "date-time",
+            "description": "ISO 8601 timestamp when the preset was created",
+            "example": "2018-11-14T18:27:39.000+00:00"
+          },
+          "location": {
+            "type": "string",
+            "description": "Location/path of the content",
+            "example": "/playback/container/c3BvdGlmeTpwbGF5bGlzdDoyM1NNZHlPSEE2S2t6SG9QT0o1S1E5"
+          },
+          "name": {
+            "type": "string",
+            "description": "Name of the preset",
+            "example": "Radio Mix"
+          },
+          "source": {
+            "$ref": "#/components/schemas/Source"
+          },
+          "updatedOn": {
+            "type": "string",
+            "format": "date-time",
+            "description": "ISO 8601 timestamp when the preset was last updated",
+            "example": "2025-12-28T16:38:41.000+00:00"
+          },
+          "username": {
+            "type": "string",
+            "description": "Username associated with the preset",
+            "example": "Radio Mix"
+          }
+        }
+      },
+      "RecentsContainer": {
+        "type": "object",
+        "description": "Container for recent items",
+        "xml": {
+          "name": "recents"
+        },
+        "properties": {
+          "recent": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RecentItem"
+            },
+            "xml": {
+              "wrapped": false
+            }
+          }
+        }
+      },
+      "RecentItem": {
+        "type": "object",
+        "description": "Recent item played on the device",
+        "xml": {
+          "name": "recent"
+        },
+        "required": [
+          "id",
+          "contentItemType",
+          "createdOn",
+          "lastplayedat",
+          "location",
+          "name",
+          "source",
+          "sourceid",
+          "updatedOn"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Unique identifier for the recent item",
+            "xml": {
+              "attribute": true
+            },
+            "example": "123"
+          },
+          "contentItemType": {
+            "type": "string",
+            "description": "Type of content item",
+            "example": "tracklisturl"
+          },
+          "createdOn": {
+            "type": "string",
+            "format": "date-time",
+            "description": "ISO 8601 timestamp when the item was created",
+            "example": "2025-11-09T11:40:37.000+00:00"
+          },
+          "lastplayedat": {
+            "type": "string",
+            "format": "date-time",
+            "description": "ISO 8601 timestamp when the item was last played",
+            "example": "2025-11-09T19:42:09.000+00:00"
+          },
+          "location": {
+            "type": "string",
+            "description": "Location/path of the content",
+            "example": "/playback/container/35546f3"
+          },
+          "name": {
+            "type": "string",
+            "description": "Name of the recent item",
+            "example": "A Name"
+          },
+          "source": {
+            "$ref": "#/components/schemas/Source"
+          },
+          "sourceid": {
+            "type": "string",
+            "description": "Identifier of the source",
+            "example": "19989643"
+          },
+          "updatedOn": {
+            "type": "string",
+            "format": "date-time",
+            "description": "ISO 8601 timestamp when the item was last updated",
+            "example": "2025-11-09T19:42:11.000+00:00"
+          }
+        }
+      },
+      "SourcesContainer": {
+        "type": "object",
+        "description": "Container for sources",
+        "xml": {
+          "name": "sources"
+        },
+        "properties": {
+          "source": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Source"
+            },
+            "xml": {
+              "wrapped": false
+            }
+          }
+        }
+      },
+      "GroupResponse": {
+        "type": "object",
+        "description": "XML response containing group information",
+        "xml": {
+          "name": "group"
+        },
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Unique group identifier",
+            "xml": {
+              "attribute": true
+            },
+            "example": "1225842"
+          },
+          "masterDeviceId": {
+            "type": "string",
+            "description": "Device ID of the master device in the group",
+            "example": "587A628A4042"
+          },
+          "name": {
+            "type": "string",
+            "description": "Name of the group",
+            "example": "Living Room Stereo"
+          },
+          "roles": {
+            "$ref": "#/components/schemas/GroupRoles"
+          }
+        }
+      },
+      "GroupRequest": {
+        "type": "object",
+        "description": "XML request to create a new device group",
+        "xml": {
+          "name": "group"
+        },
+        "required": [
+          "masterDeviceId",
+          "name",
+          "roles"
+        ],
+        "properties": {
+          "masterDeviceId": {
+            "type": "string",
+            "description": "Device ID of the master device in the group",
+            "example": "587A628A4042"
+          },
+          "name": {
+            "type": "string",
+            "description": "Name of the group",
+            "example": "Living Room Stereo"
+          },
+          "roles": {
+            "$ref": "#/components/schemas/GroupRoles"
+          }
+        }
+      },
+      "GroupUpdateRequest": {
+        "type": "object",
+        "description": "XML request to update an existing device group",
+        "xml": {
+          "name": "group"
+        },
+        "required": [
+          "masterDeviceId",
+          "name"
+        ],
+        "properties": {
+          "masterDeviceId": {
+            "type": "string",
+            "description": "Device ID of master (must be LEFT or RIGHT device in the group)",
+            "example": "44EAD8A18888"
+          },
+          "name": {
+            "type": "string",
+            "description": "Group name",
+            "example": "Updated Stereo"
+          }
+        }
+      },
+      "GroupRoles": {
+        "type": "object",
+        "description": "Container for group roles",
+        "xml": {
+          "name": "roles"
+        },
+        "properties": {
+          "groupRole": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/GroupRole"
+            },
+            "xml": {
+              "wrapped": false
+            }
+          }
+        }
+      },
+      "GroupRole": {
+        "type": "object",
+        "description": "Role assignment for a device in a group",
+        "xml": {
+          "name": "groupRole"
+        },
+        "required": [
+          "deviceId",
+          "role"
+        ],
+        "properties": {
+          "deviceId": {
+            "type": "string",
+            "description": "Device ID",
+            "example": "587A628A4042"
+          },
+          "role": {
+            "type": "string",
+            "description": "Role of the device in the group",
+            "enum": [
+              "LEFT",
+              "RIGHT"
+            ],
+            "example": "LEFT"
+          }
+        }
+      },
+      "PowerOnRequest": {
+        "type": "object",
+        "description": "XML request body for power on support with device diagnostic data",
+        "xml": {
+          "name": "device-data"
+        },
+        "properties": {
+          "device": {
+            "$ref": "#/components/schemas/PowerOnDevice"
+          },
+          "diagnostic-data": {
+            "$ref": "#/components/schemas/DiagnosticData"
+          }
+        }
+      },
+      "PowerOnProduct": {
+        "type": "object",
+        "description": "Product information for power on request",
+        "xml": {
+          "name": "product"
+        },
+        "properties": {
+          "product_code": {
+            "type": "string",
+            "description": "Product code identifier",
+            "xml": {
+              "attribute": true
+            },
+            "example": "SoundTouch 10 sm2"
+          },
+          "type": {
+            "type": "string",
+            "description": "Product type identifier",
+            "xml": {
+              "attribute": true
+            },
+            "example": "5"
+          },
+          "serialnumber": {
+            "type": "string",
+            "description": "Product serial number",
+            "example": "069123456789010AE"
+          }
+        }
+      },
+      "PowerOnDevice": {
+        "type": "object",
+        "description": "Device information for power on request",
+        "xml": {
+          "name": "device"
+        },
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Device identifier",
+            "xml": {
+              "attribute": true
+            },
+            "example": "587A628A4042"
+          },
+          "serialnumber": {
+            "type": "string",
+            "description": "Device serial number",
+            "example": "P123456789101123456789"
+          },
+          "firmware-version": {
+            "type": "string",
+            "description": "Firmware version string",
+            "xml": {
+              "name": "firmware-version"
+            },
+            "example": "27.0.6.46330.5043500 epdbuild.trunk.hepdswbld04.2022-08-04T11:20:29"
+          },
+          "product": {
+            "$ref": "#/components/schemas/PowerOnProduct"
+          }
+        }
+      },
+      "MacAddresses": {
+        "type": "object",
+        "description": "Container for MAC addresses",
+        "xml": {
+          "name": "macaddresses"
+        },
+        "properties": {
+          "macaddress": {
+            "type": "array",
+            "description": "List of MAC addresses",
+            "items": {
+              "type": "string",
+              "example": "587A628A4042"
+            },
+            "xml": {
+              "name": "macaddress",
+              "wrapped": false
+            }
+          }
+        }
+      },
+      "DeviceLandscape": {
+        "type": "object",
+        "description": "Device network landscape information",
+        "xml": {
+          "name": "device-landscape"
+        },
+        "properties": {
+          "rssi": {
+            "type": "string",
+            "description": "Signal strength indicator",
+            "example": "Good"
+          },
+          "gateway-ip-address": {
+            "type": "string",
+            "description": "Gateway IP address",
+            "xml": {
+              "name": "gateway-ip-address"
+            },
+            "example": "192.168.178.1"
+          },
+          "macaddresses": {
+            "$ref": "#/components/schemas/MacAddresses"
+          },
+          "ip-address": {
+            "type": "string",
+            "description": "Device IP address",
+            "xml": {
+              "name": "ip-address"
+            },
+            "example": "192.168.178.50"
+          },
+          "network-connection-type": {
+            "type": "string",
+            "description": "Type of network connection",
+            "xml": {
+              "name": "network-connection-type"
+            },
+            "example": "Wireless"
+          }
+        }
+      },
+      "NetworkLandscape": {
+        "type": "object",
+        "description": "Network landscape information",
+        "xml": {
+          "name": "network-landscape"
+        },
+        "properties": {
+          "network-data": {
+            "type": "object",
+            "description": "Network data container",
+            "xml": {
+              "name": "network-data"
+            }
+          }
+        }
+      },
+      "DiagnosticData": {
+        "type": "object",
+        "description": "Diagnostic data including device and network information",
+        "xml": {
+          "name": "diagnostic-data"
+        },
+        "properties": {
+          "device-landscape": {
+            "$ref": "#/components/schemas/DeviceLandscape"
+          },
+          "network-landscape": {
+            "$ref": "#/components/schemas/NetworkLandscape"
+          }
+        }
+      },
+      "ErrorResponse": {
+        "type": "object",
+        "description": "XML response containing error status",
+        "xml": {
+          "name": "status"
+        },
+        "properties": {
+          "message": {
+            "type": "string",
+            "description": "Error message",
+            "example": "Server Error: java.lang.RuntimeException: Failed : HTTP error code : 403"
+          },
+          "status-code": {
+            "type": "string",
+            "description": "Status code",
+            "xml": {
+              "name": "status-code"
+            },
+            "example": "500"
+          }
+        }
+      },
+      "SoftwareUpdateResponse": {
+        "type": "object",
+        "description": "XML response containing software update information",
+        "xml": {
+          "name": "software_update"
+        },
+        "properties": {
+          "softwareUpdateLocation": {
+            "type": "string",
+            "description": "Location URL for software update (empty if no update available)",
+            "example": ""
+          }
+        }
+      },
+      "DeviceUpdateRequest": {
+        "type": "object",
+        "description": "Request body for updating device information",
+        "xml": {
+          "name": "device"
+        },
+        "required": [
+          "deviceid",
+          "name",
+          "macaddress"
+        ],
+        "properties": {
+          "deviceid": {
+            "type": "string",
+            "description": "Device identifier",
+            "xml": {
+              "attribute": true
+            },
+            "example": "587A628A4042"
+          },
+          "name": {
+            "type": "string",
+            "description": "Device name",
+            "example": "Test Device"
+          },
+          "macaddress": {
+            "type": "string",
+            "description": "MAC address of the device",
+            "example": "587A628A4042"
+          }
+        }
+      },
+      "DeviceUpdateResponse": {
+        "type": "object",
+        "description": "Response containing updated device information",
+        "xml": {
+          "name": "device"
+        },
+        "required": [
+          "deviceid",
+          "createdOn",
+          "ipaddress",
+          "name",
+          "updatedOn"
+        ],
+        "properties": {
+          "deviceid": {
+            "type": "string",
+            "description": "Device identifier",
+            "xml": {
+              "attribute": true
+            },
+            "example": "587A628A4042"
+          },
+          "createdOn": {
+            "type": "string",
+            "format": "date-time",
+            "description": "ISO 8601 timestamp when device was first seen",
+            "example": "2018-08-11T08:55:25.000+00:00"
+          },
+          "ipaddress": {
+            "type": "string",
+            "description": "Device IP address",
+            "example": "192.168.178.33"
+          },
+          "name": {
+            "type": "string",
+            "description": "Device name",
+            "example": "Test Device"
+          },
+          "updatedOn": {
+            "type": "string",
+            "format": "date-time",
+            "description": "ISO 8601 timestamp when device was last updated",
+            "example": "2026-01-02T11:12:09.074+00:00"
+          }
+        }
+      },
+      "CustomerSupportRequest": {
+        "type": "object",
+        "description": "XML request body for customer support with device diagnostic data",
+        "xml": {
+          "name": "device-data"
+        },
+        "properties": {
+          "device": {
+            "$ref": "#/components/schemas/PowerOnDevice"
+          },
+          "diagnostic-data": {
+            "$ref": "#/components/schemas/DiagnosticData"
+          }
+        }
+      },
+      "DeviceEventsRequest": {
+        "type": "object",
+        "description": "JSON request body for device events",
+        "required": [
+          "envelope",
+          "payload"
+        ],
+        "properties": {
+          "envelope": {
+            "$ref": "#/components/schemas/EventEnvelope"
+          },
+          "payload": {
+            "$ref": "#/components/schemas/EventPayload"
+          }
+        }
+      },
+      "EventEnvelope": {
+        "type": "object",
+        "description": "Event envelope containing metadata",
+        "required": [
+          "monoTime",
+          "payloadProtocolVersion",
+          "payloadType",
+          "protocolVersion",
+          "time",
+          "uniqueId"
+        ],
+        "properties": {
+          "monoTime": {
+            "type": "integer",
+            "description": "Monotonic time value",
+            "example": 94118263
+          },
+          "payloadProtocolVersion": {
+            "type": "string",
+            "description": "Payload protocol version",
+            "example": "3.1"
+          },
+          "payloadType": {
+            "type": "string",
+            "description": "Type of payload",
+            "example": "scmudc"
+          },
+          "protocolVersion": {
+            "type": "string",
+            "description": "Protocol version",
+            "example": "1.0"
+          },
+          "time": {
+            "type": "string",
+            "format": "date-time",
+            "description": "ISO 8601 timestamp",
+            "example": "2026-01-09T08:02:32.874426+00:00"
+          },
+          "uniqueId": {
+            "type": "string",
+            "description": "Unique device identifier",
+            "example": "587A628A4042"
+          }
+        }
+      },
+      "EventPayload": {
+        "type": "object",
+        "description": "Event payload containing device info and events",
+        "required": [
+          "deviceInfo",
+          "events"
+        ],
+        "properties": {
+          "deviceInfo": {
+            "$ref": "#/components/schemas/EventDeviceInfo"
+          },
+          "events": {
+            "type": "array",
+            "description": "Array of events",
+            "items": {
+              "$ref": "#/components/schemas/DeviceEvent"
+            }
+          }
+        }
+      },
+      "EventDeviceInfo": {
+        "type": "object",
+        "description": "Device information in event",
+        "required": [
+          "boseID",
+          "deviceID",
+          "deviceType",
+          "serialNumber",
+          "softwareVersion",
+          "systemSerialNumber"
+        ],
+        "properties": {
+          "boseID": {
+            "type": "string",
+            "description": "Bose account ID",
+            "example": "6921042"
+          },
+          "deviceID": {
+            "type": "string",
+            "description": "Device identifier",
+            "example": "587A628A4042"
+          },
+          "deviceType": {
+            "type": "string",
+            "description": "Type of device",
+            "example": "SoundTouch 20"
+          },
+          "serialNumber": {
+            "type": "string",
+            "description": "Device serial number",
+            "example": "P123456789101123456789"
+          },
+          "softwareVersion": {
+            "type": "string",
+            "description": "Software version string",
+            "example": "27.0.6.46330.5043500 epdbuild.trunk.hepdswbld04.2022-08-04T11:20:29"
+          },
+          "systemSerialNumber": {
+            "type": "string",
+            "description": "System serial number",
+            "example": "069236P81556160AE"
+          }
+        }
+      },
+      "DeviceEvent": {
+        "type": "object",
+        "description": "Individual device event",
+        "required": [
+          "data",
+          "monoTime",
+          "time",
+          "type"
+        ],
+        "properties": {
+          "data": {
+            "type": "object",
+            "description": "Event-specific data (structure varies by type)",
+            "additionalProperties": true,
+            "example": {
+              "source-state": "SPOTIFY"
+            }
+          },
+          "monoTime": {
+            "type": "integer",
+            "description": "Monotonic time value",
+            "example": 94118263
+          },
+          "time": {
+            "type": "string",
+            "format": "date-time",
+            "description": "ISO 8601 timestamp",
+            "example": "2026-01-09T08:02:32.873379+00:00"
+          },
+          "type": {
+            "type": "string",
+            "description": "Event type identifier",
+            "example": "source-state-changed"
+          }
+        }
+      },
+      "BmxServicesResponse": {
+        "type": "object",
+        "description": "JSON response containing list of BMX services",
+        "required": [
+          "_links",
+          "askAgainAfter",
+          "bmx_services"
+        ],
+        "properties": {
+          "_links": {
+            "$ref": "#/components/schemas/BmxLinks"
+          },
+          "askAgainAfter": {
+            "type": "integer",
+            "description": "Milliseconds until client should request service list again",
+            "example": 1230482
+          },
+          "bmx_services": {
+            "type": "array",
+            "description": "List of available BMX streaming services",
+            "items": {
+              "$ref": "#/components/schemas/BmxService"
+            }
+          }
+        }
+      },
+      "BmxLinks": {
+        "type": "object",
+        "description": "HAL-style links for BMX responses",
+        "properties": {
+          "bmx_services_availability": {
+            "$ref": "#/components/schemas/BmxLink"
+          },
+          "bmx_logout": {
+            "$ref": "#/components/schemas/BmxLink"
+          },
+          "bmx_navigate": {
+            "$ref": "#/components/schemas/BmxLink"
+          },
+          "bmx_token": {
+            "$ref": "#/components/schemas/BmxLink"
+          },
+          "bmx_favorite": {
+            "$ref": "#/components/schemas/BmxLink"
+          },
+          "bmx_nowplaying": {
+            "$ref": "#/components/schemas/BmxLinkWithClient"
+          },
+          "bmx_reporting": {
+            "$ref": "#/components/schemas/BmxLink"
+          },
+          "bmx_availability": {
+            "$ref": "#/components/schemas/BmxLink"
+          },
+          "self": {
+            "$ref": "#/components/schemas/BmxLink"
+          }
+        }
+      },
+      "BmxLink": {
+        "type": "object",
+        "description": "HAL-style link",
+        "required": [
+          "href"
+        ],
+        "properties": {
+          "href": {
+            "type": "string",
+            "description": "Link URL",
+            "example": "/v1/navigate"
+          }
+        }
+      },
+      "BmxLinkWithClient": {
+        "type": "object",
+        "description": "HAL-style link with client usage hint",
+        "required": [
+          "href"
+        ],
+        "properties": {
+          "href": {
+            "type": "string",
+            "description": "Link URL",
+            "example": "/v1/now-playing/station/s80044"
+          },
+          "useInternalClient": {
+            "type": "string",
+            "description": "When to use internal client",
+            "enum": [
+              "ALWAYS",
+              "NEVER",
+              "FALLBACK"
+            ],
+            "example": "ALWAYS"
+          }
+        }
+      },
+      "BmxService": {
+        "type": "object",
+        "description": "BMX streaming service definition",
+        "required": [
+          "id",
+          "assets",
+          "baseUrl",
+          "streamTypes",
+          "authenticationModel"
+        ],
+        "properties": {
+          "_links": {
+            "$ref": "#/components/schemas/BmxLinks"
+          },
+          "askAdapter": {
+            "type": "boolean",
+            "description": "Whether to ask adapter for service info",
+            "example": false
+          },
+          "assets": {
+            "$ref": "#/components/schemas/BmxServiceAssets"
+          },
+          "authenticationModel": {
+            "type": "object",
+            "description": "Authentication model for the service",
+            "additionalProperties": true,
+            "example": {
+              "anonymousAccount": {
+                "autoCreate": true,
+                "enabled": true
+              }
+            }
+          },
+          "baseUrl": {
+            "type": "string",
+            "description": "Base URL for service API calls",
+            "example": "https://localhost:8080/bmx/tunein"
+          },
+          "id": {
+            "$ref": "#/components/schemas/BmxServiceId"
+          },
+          "signupUrl": {
+            "type": "string",
+            "description": "URL for user signup (optional)",
+            "example": "https://www.tunein.com/signup"
+          },
+          "streamTypes": {
+            "type": "array",
+            "description": "Types of streams supported",
+            "items": {
+              "type": "string",
+              "enum": [
+                "liveRadio",
+                "onDemand"
+              ]
+            },
+            "example": [
+              "liveRadio",
+              "onDemand"
+            ]
+          }
+        }
+      },
+      "BmxServiceId": {
+        "type": "object",
+        "description": "Service identifier",
+        "required": [
+          "name",
+          "value"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Service name",
+            "example": "TUNEIN"
+          },
+          "value": {
+            "type": "integer",
+            "description": "Numeric service ID",
+            "example": 25
+          }
+        }
+      },
+      "BmxServiceAssets": {
+        "type": "object",
+        "description": "Service branding assets",
+        "required": [
+          "color",
+          "description",
+          "icons",
+          "name"
+        ],
+        "properties": {
+          "color": {
+            "type": "string",
+            "description": "Brand color in hex format",
+            "example": "#000000"
+          },
+          "description": {
+            "type": "string",
+            "description": "Service description",
+            "example": "With TuneIn on SoundTouch, listen to more than 100,000 stations"
+          },
+          "icons": {
+            "$ref": "#/components/schemas/BmxServiceIcons"
+          },
+          "name": {
+            "type": "string",
+            "description": "Service display name",
+            "example": "TuneIn"
+          },
+          "shortDescription": {
+            "type": "string",
+            "description": "Short service description (optional)",
+            "example": "Over 100,000 radio stations"
+          }
+        }
+      },
+      "BmxServiceIcons": {
+        "type": "object",
+        "description": "Icon URLs for service",
+        "required": [
+          "largeSvg",
+          "monochromePng",
+          "monochromeSvg",
+          "smallSvg"
+        ],
+        "properties": {
+          "defaultAlbumArt": {
+            "type": "string",
+            "description": "Default album art URL",
+            "example": "https://cdn.example.com/default-art.png"
+          },
+          "largeSvg": {
+            "type": "string",
+            "description": "Large SVG icon URL",
+            "example": "https://cdn.example.com/large.svg"
+          },
+          "monochromePng": {
+            "type": "string",
+            "description": "Monochrome PNG icon URL",
+            "example": "https://cdn.example.com/mono.png"
+          },
+          "monochromeSvg": {
+            "type": "string",
+            "description": "Monochrome SVG icon URL",
+            "example": "https://cdn.example.com/mono.svg"
+          },
+          "smallSvg": {
+            "type": "string",
+            "description": "Small SVG icon URL",
+            "example": "https://cdn.example.com/small.svg"
+          }
+        }
+      },
+      "BmxPlaybackResponse": {
+        "type": "object",
+        "description": "JSON response containing playback information",
+        "required": [
+          "audio",
+          "imageUrl",
+          "name",
+          "streamType"
+        ],
+        "properties": {
+          "_links": {
+            "$ref": "#/components/schemas/BmxLinks"
+          },
+          "audio": {
+            "$ref": "#/components/schemas/BmxAudio"
+          },
+          "imageUrl": {
+            "type": "string",
+            "description": "Station/stream logo URL",
+            "example": "http://cdn-profiles.tunein.com/s80044/images/logog.png"
+          },
+          "isFavorite": {
+            "type": "boolean",
+            "description": "Whether station is marked as favorite",
+            "example": false
+          },
+          "name": {
+            "type": "string",
+            "description": "Station/stream name",
+            "example": "Radio TEDDY"
+          },
+          "streamType": {
+            "type": "string",
+            "description": "Type of stream",
+            "enum": [
+              "liveRadio",
+              "onDemand"
+            ],
+            "example": "liveRadio"
+          }
+        }
+      },
+      "BmxAudio": {
+        "type": "object",
+        "description": "Audio stream configuration",
+        "required": [
+          "hasPlaylist",
+          "isRealtime",
+          "streamUrl",
+          "streams"
+        ],
+        "properties": {
+          "hasPlaylist": {
+            "type": "boolean",
+            "description": "Whether stream is a playlist",
+            "example": true
+          },
+          "isRealtime": {
+            "type": "boolean",
+            "description": "Whether stream is realtime",
+            "example": true
+          },
+          "maxTimeout": {
+            "type": "integer",
+            "description": "Maximum timeout in seconds",
+            "example": 60
+          },
+          "streamUrl": {
+            "type": "string",
+            "description": "Primary stream URL",
+            "example": "https://stream.example.com/radio"
+          },
+          "streams": {
+            "type": "array",
+            "description": "List of available streams",
+            "items": {
+              "$ref": "#/components/schemas/BmxStream"
+            }
+          }
+        }
+      },
+      "BmxStream": {
+        "type": "object",
+        "description": "Individual stream definition",
+        "required": [
+          "hasPlaylist",
+          "isRealtime",
+          "streamUrl"
+        ],
+        "properties": {
+          "_links": {
+            "$ref": "#/components/schemas/BmxLinks"
+          },
+          "bufferingTimeout": {
+            "type": "integer",
+            "description": "Buffering timeout in seconds",
+            "example": 20
+          },
+          "connectingTimeout": {
+            "type": "integer",
+            "description": "Connection timeout in seconds",
+            "example": 10
+          },
+          "hasPlaylist": {
+            "type": "boolean",
+            "description": "Whether stream is a playlist",
+            "example": true
+          },
+          "isRealtime": {
+            "type": "boolean",
+            "description": "Whether stream is realtime",
+            "example": true
+          },
+          "streamUrl": {
+            "type": "string",
+            "description": "Stream URL",
+            "example": "https://stream.example.com/radio"
+          }
+        }
+      },
+      "BmxTokenRequest": {
+        "type": "object",
+        "description": "Token refresh request",
+        "required": [
+          "grant_type",
+          "refresh_token"
+        ],
+        "properties": {
+          "grant_type": {
+            "type": "string",
+            "description": "OAuth grant type",
+            "enum": [
+              "refresh_token"
+            ],
+            "example": "refresh_token"
+          },
+          "refresh_token": {
+            "type": "string",
+            "description": "Refresh token to exchange for access token",
+            "example": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+          }
+        }
+      },
+      "BmxTokenResponse": {
+        "type": "object",
+        "description": "Token refresh response",
+        "required": [
+          "access_token"
+        ],
+        "properties": {
+          "access_token": {
+            "type": "string",
+            "description": "New access token",
+            "example": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+          }
+        }
+      },
+      "BmxReportRequest": {
+        "type": "object",
+        "description": "Analytics report request",
+        "properties": {
+          "timeStamp": {
+            "type": "string",
+            "description": "Timestamp of the event",
+            "example": "2025-10-31T05:38:55+0000"
+          },
+          "eventType": {
+            "type": "string",
+            "description": "Type of event",
+            "enum": [
+              "START",
+              "STOP",
+              "PAUSE",
+              "RESUME",
+              "TIMED"
+            ],
+            "example": "START"
+          },
+          "reason": {
+            "type": "string",
+            "description": "Reason for the event",
+            "example": "USER_SELECT_PLAYABLE"
+          },
+          "reasonSubCode": {
+            "type": "string",
+            "description": "Sub-code providing additional detail about the reason"
+          },
+          "timeIntoTrack": {
+            "type": "integer",
+            "description": "Time into track in seconds",
+            "example": 0
+          },
+          "playbackDelay": {
+            "type": "integer",
+            "description": "Playback delay in milliseconds",
+            "example": 6664
+          }
+        }
+      },
+      "BmxReportResponse": {
+        "type": "object",
+        "description": "Analytics report response",
+        "properties": {
+          "_links": {
+            "$ref": "#/components/schemas/BmxLinks"
+          },
+          "nextReportIn": {
+            "type": "integer",
+            "description": "Seconds until next report should be sent",
+            "example": 1800
+          }
+        }
+      },
+      "BmxServicesAvailabilityResponse": {
+        "type": "object",
+        "description": "Response containing services availability information",
+        "required": [
+          "services"
+        ],
+        "properties": {
+          "services": {
+            "type": "array",
+            "description": "List of services with their availability status",
+            "items": {
+              "$ref": "#/components/schemas/BmxServiceAvailability"
+            }
+          }
+        }
+      },
+      "BmxServiceAvailability": {
+        "type": "object",
+        "description": "Availability status for a single service",
+        "required": [
+          "canAdd",
+          "canRemove",
+          "service"
+        ],
+        "properties": {
+          "canAdd": {
+            "type": "boolean",
+            "description": "Whether the service can be added to the account",
+            "example": true
+          },
+          "canRemove": {
+            "type": "boolean",
+            "description": "Whether the service can be removed from the account",
+            "example": false
+          },
+          "service": {
+            "type": "string",
+            "description": "Name of the service",
+            "example": "TUNEIN"
+          }
+        }
+      }
+    }
+  }
+}

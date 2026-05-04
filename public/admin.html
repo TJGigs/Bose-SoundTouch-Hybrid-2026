@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <title>Speaker Admin</title>
+  <link rel="icon" type="image/png" href="images/hybrid_icon.png">
+  <link rel="stylesheet" href="style.css?v=26">
+  <link rel="manifest" href="manifest.json">
+  <script src="global_ui.js"></script>
+</head>
+<body>
+<div class="container">
+  <div class="global-nav">
+	<div style="font-weight:700; color:var(--title-color); font-size:1.1em; display:flex; align-items:center; gap:12px; white-space:nowrap; min-width:250px;">
+		<img src="images/hybrid_icon.png" style="height:32px; width:auto;" alt="Logo">
+		Bose SoundTouch Hybrid
+	</div>
+    
+	<div class="nav-center-group">
+        <div class="global-link" onmousedown="window.location.href='/control.html'">Remote Control</div>
+        <div class="global-link" onmousedown="window.location.href='/manager.html'">Library Manager</div>
+        <div class="global-link active" onmousedown="window.location.href='/admin.html'">Speaker Admin</div>
+        <div class="global-link" onmousedown="window.location.href='/tools.html'">System Tools</div>
+    </div>
+
+    <div style="min-width:250px; display:flex; justify-content:flex-end;">
+        <button class="btn-all-off" onclick="triggerGlobalAllOff()">
+            <span style="color: var(--danger); font-size: 1.1em;"><i class="icon-power"></i></span> All Off
+        </button>
+    </div>
+  </div>
+
+  <div id="admin-grid" class="admin-grid">Loading Speakers...</div>
+</div>
+
+<script>
+  if (localStorage.getItem('theme') === 'light') document.body.classList.add('light-mode');
+
+  function formatXml(xml) {
+    if (!xml) return '';
+    let formatted = '', pad = 0;
+    xml.split(/>\s*</).forEach(node => {
+        if (node.match(/^\/\w/)) pad--;
+        let indent = ''; for (let i = 0; i < pad; i++) indent += '  ';
+        formatted += indent + '<' + node + '>\r\n';
+        if (node.match(/^<?\w[^>]*[^\/]$/)) pad++;
+    });
+    return formatted.replace(/<</g, '<').replace(/>>/g, '>').replace(/<>/g, '');
+  }
+
+  async function loadAdmin() {
+    const statusRes = await fetch('/api/status');
+    const devices = await statusRes.json();
+    
+    document.getElementById('admin-grid').innerHTML = devices.map(d => {
+      if (!d.online) return `<div class="card" style="border-style:dashed;"><h3>${d.name}</h3><div style="color:#e74c3c; font-weight:bold; font-size:0.8em; margin-top:10px;">OFFLINE / UNREACHABLE</div></div>`;
+      
+      const hasClock = d.type.includes("20") || d.type.includes("30") || d.type.includes("Portable");
+      
+      return `
+        <div class="card">
+          <h3>${d.name}</h3>
+          <div class="sub-head">
+            <span>${d.type} <span id="mode-${d.ip}" class="mode-badge"></span></span>
+            <button id="pwr-${d.ip}" class="pwr-off" onclick="togglePower('${d.ip}')">POWER</button>
+          </div>
+          
+          <div class="info-row">
+            <span>${d.ip}</span> • 
+            <span id="wifi-${d.ip}">📶 ...</span>
+          </div>
+
+          <div class="control-row">
+            <input type="text" id="n-${d.ip}" value="${d.name}" style="background:var(--bg-color); color:var(--text); border:1px solid #777; padding:4px; border-radius:3px;">
+            <button onclick="ren('${d.ip}')">Save</button>
+          </div>
+          
+          <div class="control-row" style="align-items:flex-start; flex-direction:column; gap:5px;">
+            <div style="display:flex; justify-content:space-between; width:100%;">
+                <label>Bass</label>
+                <span id="bv-${d.ip}" style="color:var(--text); opacity:0.8;">(${d.bass})</span>
+            </div>
+            <div class="slider-container" style="position:relative; width:100%;">
+                <span id="bubble-bass-${d.ip}" class="vol-bubble"></span>
+                <input type="range" id="br-${d.ip}" min="-9" max="0" value="${d.bass}" 
+                       oninput="handleBassInput('${d.ip}', this.value, this)"
+                       onchange="sB('${d.ip}',this.value)"
+                       onmousedown="showBubble('bass-${d.ip}')"
+                       onmouseup="hideBubble('bass-${d.ip}')"
+                       ontouchstart="showBubble('bass-${d.ip}')"
+                       ontouchend="hideBubble('bass-${d.ip}')">
+            </div>
+          </div>
+          
+          <div class="control-row">
+            <label>Auto-Off</label>
+            <button id="ao-${d.ip}" onclick="tA('${d.ip}', this)">...</button>
+          </div>
+          
+          <div class="control-row"><label>Bluetooth</label><button onclick="pBT('${d.ip}')">Pairing</button></div>	  
+          
+          <div class="control-row ${hasClock ? '' : 'hidden'}">
+            <label>Clock</label>
+            <button id="clk-${d.ip}" onclick="tS('${d.ip}','clockDisplay', this)">...</button>
+          </div>
+
+          <div class="tools-area">
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+                 <span id="fw-${d.ip}" style="font-size:0.75em; color:var(--text); opacity:0.8; line-height:1.2;"></span>
+                 <div style="display:flex; gap: 8px;">
+					<button id="src-${d.ip}" style="font-size:0.7em; background:#3498db; color:white; border:none; padding:4px 8px; border-radius:3px; cursor:pointer;" onclick="toggleSource('${d.ip}', this)">...</button>
+                     <button style="font-size:0.7em; background:#e74c3c; color:white; border:none; padding:4px 8px; border-radius:3px; cursor:pointer;" onclick="rebootSpk('${d.ip}')">Reboot</button>
+                     <button style="font-size:0.7em; background:#34495e; color:white; border:none; padding:4px 8px; border-radius:3px; cursor:pointer;" onclick="dS('${d.ip}')">Deep Scan</button>
+                 </div>
+            </div>
+          </div>
+         <textarea id="log-${d.ip}"></textarea>
+        </div>`;
+    }).join('');
+
+    devices.forEach(d => { if(d.online) fetchDeviceState(d.ip); });
+  }
+
+  function showBubble(idSuffix) {
+      const bubble = document.getElementById(`bubble-${idSuffix}`);
+      const el = document.getElementById(`br-${idSuffix.split('-')[1]}`); 
+      if (bubble && el) {
+          const percent = (el.value - el.min) / (el.max - el.min);
+          const newLeft = percent * (el.offsetWidth - 15) + (15/2); 
+          bubble.style.left = `${newLeft}px`;
+          bubble.innerText = el.value;
+          bubble.classList.add('visible');
+      }
+  }
+
+  function hideBubble(idSuffix) {
+      const bubble = document.getElementById(`bubble-${idSuffix}`);
+      if (bubble) bubble.classList.remove('visible');
+  }
+
+  function handleBassInput(ip, value, el) {
+      const label = document.getElementById(`bv-${ip}`);
+      if (label) label.innerText = `(${value})`;
+      const bubble = document.getElementById(`bubble-bass-${ip}`);
+      if (bubble && el) {
+          bubble.innerText = value;
+          const percent = (value - el.min) / (el.max - el.min);
+          const newLeft = percent * (el.offsetWidth - 15) + (15/2); 
+          bubble.style.left = `${newLeft}px`;
+      }
+  }
+
+  async function fetchDeviceState(ip) {
+      try {
+          const res = await fetch(`/api/admin/device_status?ip=${ip}`);
+          const s = await res.json();
+          
+          const nameInput = document.getElementById(`n-${ip}`);
+          if(nameInput && document.activeElement !== nameInput && s.name) nameInput.value = s.name;
+          
+          const fwEl = document.getElementById(`fw-${ip}`);
+          if (fwEl && s.fw && s.fw !== '---') {
+              const shortFw = s.fw.split('.').slice(0,3).join('.');
+              fwEl.innerText = `v${shortFw}`;
+          }
+
+          const pwrBtn = document.getElementById(`pwr-${ip}`);
+          const modeBadge = document.getElementById(`mode-${ip}`);
+          if(pwrBtn) {
+              if (s.power === 'ON') {
+                  pwrBtn.className = 'pwr-on'; pwrBtn.innerText = 'ON';
+                  if(modeBadge) modeBadge.innerText = '';
+              } else {
+                  pwrBtn.className = 'pwr-off'; pwrBtn.innerText = 'OFF';
+                  if(modeBadge) modeBadge.innerText = '(STANDBY)';
+              }
+          }
+
+          const wifi = document.getElementById(`wifi-${ip}`);
+          if(wifi && s.ssid) {            
+              const freqText = s.freq ? `  ${s.freq} ` : ' ';
+              wifi.innerText = `📶 ${s.ssid}${freqText}(${s.rssi})`;
+          }
+
+          const br = document.getElementById(`br-${ip}`);
+          if(br && document.activeElement !== br) br.value = s.bass;
+          
+          const bv = document.getElementById(`bv-${ip}`);
+          if(bv && document.activeElement !== br) bv.innerText = `(${s.bass})`;
+
+          const clk = document.getElementById(`clk-${ip}`);
+          if(clk) { clk.innerText = s.clock === 'true' ? 'ON' : 'OFF'; clk.className = s.clock === 'true' ? 'state-on' : 'state-off'; }
+
+          const ao = document.getElementById(`ao-${ip}`);
+          if(ao) { ao.innerText = s.autoOff === 'true' ? 'ON' : 'OFF'; ao.className = s.autoOff === 'true' ? 'state-on' : 'state-off'; }
+		  
+		 // Update the Source Toggle Button text
+          const srcBtn = document.getElementById(`src-${ip}`);
+          if (srcBtn && s.rawSource) {
+              if (s.rawSource === 'AUX') srcBtn.innerText = 'AUX';
+              else if (s.rawSource === 'BLUETOOTH') srcBtn.innerText = 'BLUETOOTH';
+              else srcBtn.innerText = 'WIFI';
+          } 
+
+      } catch(e) {}
+  }
+
+	async function togglePower(ip) { 
+      // 1. OPTIMISTIC UI UPDATE: Instantly flip the button state locally
+      const pwrBtn = document.getElementById(`pwr-${ip}`);
+      const modeBadge = document.getElementById(`mode-${ip}`);
+      
+      if (pwrBtn) {
+          if (pwrBtn.innerText === 'ON') {
+              pwrBtn.className = 'pwr-off'; 
+              pwrBtn.innerText = 'OFF';
+              if(modeBadge) modeBadge.innerText = '(STANDBY)';
+          } else {
+              pwrBtn.className = 'pwr-on'; 
+              pwrBtn.innerText = 'ON';
+              if(modeBadge) modeBadge.innerText = '';
+          }
+      }
+
+      // 2. Send the command to the backend
+      await fetch('/api/admin/key', { 
+          method: 'POST', 
+          headers: {'Content-Type':'application/json'}, 
+          body: JSON.stringify({ ip, key: 'POWER' }) 
+      }); 
+      
+      // 3. Fetch true hardware state 1.5s later to ensure sync
+      setTimeout(() => fetchDeviceState(ip), 1500); 
+  }
+  
+  async function ren(ip) { 
+      try {
+          const newName = document.getElementById(`n-${ip}`).value;
+          const res = await fetch('/api/admin/name', { 
+              method: 'POST', 
+              headers: {'Content-Type':'application/json'}, 
+              body: JSON.stringify({ ip, name: newName }) 
+          }); 
+          
+          if (!res.ok) {
+              const errText = await res.text();
+              alert("Speaker rejected the name change: " + errText);
+              return; 
+          }
+          
+          alert("Saved"); 
+          setTimeout(() => fetchDeviceState(ip), 2000); 
+      } catch (e) {
+          alert("Network error: " + e.message);
+      }
+  }
+
+  async function sB(ip, value) { await fetch('/api/admin/bass', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ ip, value }) }); }
+  async function pBT(ip) { await fetch('/api/admin/bluetooth', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ ip }) }); alert("Pairing Mode Active"); }
+  
+  async function tS(ip, tag, btn) { 
+      btn.innerText = "...";
+      const res = await fetch('/api/admin/settings_toggle', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ ip, tag }) }); 
+      const d = await res.json(); 
+      if(d.error) alert("Error: " + d.error);
+      else { btn.innerText = d.state === 'true' ? 'ON' : 'OFF'; btn.className = d.state === 'true' ? 'state-on' : 'state-off'; }
+  }
+  
+  async function tA(ip, btn) { 
+      btn.innerText = "...";
+      const r = await fetch('/api/admin/auto_off', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ ip }) }); 
+      const d = await r.json(); 
+      btn.innerText = d.state === 'true' ? 'ON' : 'OFF'; btn.className = d.state === 'true' ? 'state-on' : 'state-off';
+  }
+
+  async function dS(ip) { 
+    const box = document.getElementById(`log-${ip}`); box.style.display = 'block'; box.value = "Scanning...";
+    const res = await fetch(`/api/admin/deepscan?ip=${ip}`);
+    const data = await res.json();
+    box.value = Object.entries(data).map(([k, v]) => `=== /${k} ===\n${formatXml(v)}\n`).join('\n');
+  }
+
+  async function rebootSpk(ip) {
+      if(!confirm("Are you sure you want to completely reboot this speaker via Telnet? This will take a moment.")) return;
+      await fetch('/api/admin/reboot_speaker', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ ip }) });
+      alert("Telnet Reboot Command sent!");
+  }
+async function triggerAllOff() {
+      try {
+          await fetch('/api/power_off_all', { method: 'POST' });
+          // Instantly refresh the admin grid to show all buttons turning OFF
+          loadAdmin(); 
+      } catch (e) {
+          console.error("Failed to power off speakers", e);
+      }
+  }
+
+async function toggleSource(ip, btn) {
+      // 1. OPTIMISTIC UI: Switching source ALWAYS wakes the speaker up natively.
+      const pwrBtn = document.getElementById(`pwr-${ip}`);
+      const modeBadge = document.getElementById(`mode-${ip}`);
+      
+      if (pwrBtn && pwrBtn.innerText === 'OFF') {
+          pwrBtn.className = 'pwr-on'; 
+          pwrBtn.innerText = 'ON';
+          if(modeBadge) modeBadge.innerText = '';
+      }
+
+      try {
+          // 2. SEND COMMAND: Let the backend handle the complex Preset -> Stop sequence
+          const r = await fetch('/api/admin/toggle_source', { 
+              method: 'POST', 
+              headers: {'Content-Type':'application/json'}, 
+              body: JSON.stringify({ ip }) 
+          });
+          const d = await r.json();
+          
+          if (d.success) {
+              // 3. Update the button text instantly (WIFI, AUX, BLUETOOTH)
+              btn.innerText = d.new_state;
+          }
+      } catch(e) {
+          console.error("Failed to toggle source", e);
+      }
+  }
+
+  loadAdmin();
+</script>
+</body>
+</html>

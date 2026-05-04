@@ -1,0 +1,7 @@
+[
+  { "name": "Speaker 1", "ip": "XXX.XXX.X.XX" },
+  { "name": "Speaker 2", "ip": "XXX.XXX.X.XX" },
+  { "name": "Speaker 3", "ip": "XXX.XXX.X.XX" },
+  { "name": "Speaker 4", "ip": "XXX.XXX.X.XX" },
+  { "name": "Speaker n", "ip": "XXX.XXX.X.XX" }
+]

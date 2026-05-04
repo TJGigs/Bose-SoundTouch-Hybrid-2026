@@ -1,0 +1,40 @@
+# ==============================================================================
+# BOSE SOUNDTOUCH HYBRID 2026
+# ==============================================================================
+#
+# --- HOW TO UPDATE THIS APP ---
+# Due to how some NAS systems (like QNAP/Synology) aggressively cache images,
+# simply clicking "Recreate" while using the 'latest' tag often fails to pull
+# the newest code. Choose your update method below to bypass this issue:
+#
+# METHOD A: NAS / GUI USERS (The Version Tag Method)
+# 1. Check the GitHub Releases page for the newest version number (e.g., v4).
+# 2. Change the word 'latest' on the image line below to that exact tag (e.g., :v4).
+# 3. Click 'Recreate' or 'Update' in your Docker interface.
+# 4. Optional: Go to your Images tab and click 'Clean Up' to delete the old version.
+#
+# METHOD B: COMMAND LINE / LINUX USERS
+# Leave the tag as 'latest'. Navigate to the folder containing this file and run:
+# 1. docker compose pull
+# 2. docker compose up -d
+# 3. docker image prune -f
+# ==============================================================================
+
+services:
+  bose-hybrid:
+    # Default is 'latest' for fresh installs. 
+    # Change to a specific version (e.g., :v4) to force an update on NAS systems.
+    image: ghcr.io/tjgigs/bose-soundtouch-hybrid-2026:v3
+    
+    container_name: bose-soundtouch-hybrid
+    network_mode: "host"
+    
+    volumes:
+      # [!] USER ACTION REQUIRED: 
+      # Change ONLY the path to the LEFT of '/bose-soundtouch-hybrid' 
+      # to match your specific NAS storage structure.
+      - /share/Container/bose-soundtouch-hybrid:/app/config
+      - /etc/localtime:/etc/localtime:ro
+      - /var/run/docker.sock:/var/run/docker.sock
+      
+    restart: unless-stopped

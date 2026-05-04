@@ -1,0 +1,661 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <title>System Tools</title>
+  <link rel="icon" type="image/png" href="images/hybrid_icon.png">
+  <link rel="stylesheet" href="style.css?v=26">
+  <link rel="manifest" href="manifest.json">
+  <script src="global_ui.js"></script>
+</head>
+<body>
+
+<div class="app-container">
+    <div class="app-header">
+        <div style="display:flex; align-items:center; flex:1">
+            <div class="app-title">
+                <img src="images/hybrid_icon.png" style="height:32px; width:auto;" alt="Logo">
+                Bose SoundTouch Hybrid
+            </div>
+            
+            <div class="nav-menu">
+                <div class="nav-link" onclick="window.location.href='/control.html'" style="cursor:pointer;">Remote Control</div>
+                <div class="nav-link" onclick="window.location.href='/manager.html'" style="cursor:pointer;">Library Manager</div>
+                <div class="nav-link" onclick="window.location.href='/admin.html'" style="cursor:pointer;">Speaker Admin</div>
+                <div class="nav-link active">System Tools</div>
+            </div>
+        </div>
+        <div style="display:flex; gap:10px;">
+            <button class="btn-help" onclick="document.getElementById('doc-modal').style.display='flex'">📚Reference</button>
+            <button class="btn-help" onclick="document.getElementById('h-modal').style.display='flex'">💡Setup Guide</button>
+        </div>
+    </div>
+
+		<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; margin-bottom: 25px;">
+            
+            <div class="card" style="border-left: 3px solid #f1c40f; margin: 0; display: flex; flex-direction: column;">
+                <h3>🎨 Interface Theme</h3>
+                <div class="sub-head">Customize the look of the application.</div>
+                <div style="flex-grow: 1; display: flex; align-items: center;">
+					<button class="btn" onclick="toggleTheme()" style="width: 100%; padding: 12px; font-size: 1em; font-weight: bold;">☀️ / 🌙 Switch Theme</button>
+                </div>
+            </div>
+
+            <div class="card" style="border-left: 3px solid #3498db; margin: 0;">
+                <h3>🔍 Search Menu Order</h3>
+                <div class="sub-head">Arrange tabs from left to right.</div>
+                
+                <div id="sortable-list" style="margin-top: 15px; display: flex; flex-direction: column; gap: 8px;">
+                    </div>
+                
+                <button class="primary" onclick="saveSearchOrder()" style="width: 100%; margin-top: 15px; background: #3498db; color: white;">💾 Save Order</button>
+            </div>
+        </div>
+		 <div class="card" style="margin-bottom: 25px; border-left: 3px solid #9b59b6; height:auto;">
+            <h3>⚙️ System Services</h3>
+            <div class="sub-head">Manage Music Assistant Server and SoundTouch Hybrid containers.</div>
+            <div class="inner-panel" style="display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap: 15px;">
+                <div>
+                    <div style="font-weight:bold; color:var(--text); margin-bottom:4px;">Service Status</div>
+                    <div style="font-size:0.85em; color:var(--text); opacity:0.8;">Manage container instances</div>
+                </div>
+                <div style="display:flex; flex-wrap:wrap; gap:10px; flex:1; justify-content:flex-end;">
+                     <button class="primary" onclick="restartHybrid(this)" style="background:#3498db; color:white; white-space:nowrap; flex:1; min-width:150px; display:flex; align-items:center; justify-content:center; gap:8px;">
+                        <img src="images/hybrid_icon.png" style="height:16px; width:auto;" alt="Hybrid">
+                        Restart SoundTouch Hybrid
+                    </button>													
+					<button class="primary" onclick="restartMass(this)" style="background:#e74c3c; color:white; white-space:nowrap; flex:1; min-width:150px; display:flex; align-items:center; justify-content:center; gap:8px;">
+                        <img src="images/ma_icon.png" style="height:16px; width:auto;" alt="MA">
+                        Restart Music Assistant
+                    </button>
+                </div>
+            </div>
+        </div>
+		<div class="card" style="margin-bottom: 25px; border-left: 3px solid #e74c3c; height:auto;">
+            <div style="display: flex; justify-content: space-between; align-items: center; cursor: pointer; user-select: none;" onclick="toggleLogWindow()">
+                <h3 style="margin:0;">🖥️ Live Server Logs</h3>
+                <span id="log-chevron" style="color: var(--text-secondary); font-size: 1.2em;">▼</span>
+            </div>
+            <div class="sub-head" style="margin-top: 5px; margin-bottom: 0;">Captures the last 300 console events from the Node.js server.</div>
+            
+            <div id="log-container" style="display: none; margin-top: 15px;">
+                <textarea id="live-log-viewer" class="console-preview" style="height: 300px;" readonly></textarea>
+                
+                <div style="display: flex; gap: 15px; margin-top: 15px; align-items: center; flex-wrap: wrap;">
+                    <button class="btn" onclick="fetchLogs()">🔄 Refresh</button>
+                    
+                    <label style="font-size: 0.9em; color: var(--text); display: flex; align-items: center; gap: 6px; cursor: pointer;">
+                        <input type="checkbox" id="auto-refresh-toggle" onchange="toggleAutoRefresh()" style="width: auto;"> 
+                        Auto-Update
+                    </label>
+					
+					<label style="font-size: 0.9em; color: var(--text); display: flex; align-items: center; gap: 6px; cursor: pointer;">
+                        <input type="checkbox" id="verbose-debug-toggle" onchange="toggleVerboseDebug()" style="width: auto;"> 
+                        Verbose Debug
+                    </label>
+                    
+                    <button class="btn primary" style="background:#3498db; color:white; border:none; margin-left: auto;" onclick="downloadLogs()">💾 Download .txt</button>
+                </div>
+			</div>
+        </div>
+
+        <div class="card" style="margin-bottom: 25px; border-left: 3px solid #1abc9c; height:auto;">
+            <h3>📶 Wi-Fi Provisioning</h3>
+            <div class="sub-head">Push Wi-Fi credentials to a Wi-Fi connected speaker or via USB/Micro-USB setup cable.</div>
+            
+			<div class="warning-box">
+                <strong>⚠️ IMPORTANT:</strong> The Network Name (SSID) and Password must be typed exactly and are <strong>case-sensitive</strong>. If entered incorrectly, the speaker will fail to connect and you will have to use either the USB cable approach or the native "<span style="font-size: 0.85em;">MANUAL WI-FI UPDATE</span>" defined in the Setup Guid to fix it.
+            </div>
+
+            <div class="stream-grid" style="margin-top:15px;">
+                <div>
+                    <label style="display:block; font-size:0.75em; color:var(--text); opacity:0.8; margin-bottom:5px;">NETWORK NAME (SSID)</label>
+                    <input type="text" id="wifi-ssid" placeholder="My Home Wi-Fi" style="width:100%; box-sizing:border-box; background:var(--bg-color); color:var(--text); border:1px solid #777; padding:8px; border-radius:4px;">
+                </div>
+                <div>
+                    <label style="display:block; font-size:0.75em; color:var(--text); opacity:0.8; margin-bottom:5px;">PASSWORD</label>
+                    <input type="text" id="wifi-pass" placeholder="My Wi-Fi Password" style="width:100%; box-sizing:border-box; background:var(--bg-color); color:var(--text); border:1px solid #777; padding:8px; border-radius:4px;">
+                </div>
+            </div>
+            
+				<div class="stream-controls" style="margin-top:15px;">
+                <div style="display:flex; align-items:center; gap:10px; flex-grow: 1;">
+                    <label style="color:var(--text); font-size:0.9em; white-space: nowrap;">Target:</label>
+                    <select id="wifi-target" style="padding:8px; flex-grow:1; min-width:200px;"></select>
+                </div>
+                <button class="primary" onclick="pushWifi(this)" style="flex-shrink: 0; min-width:140px; background:#1abc9c; color:white;">📡 PUSH WI-FI</button>
+            </div>
+        </div>
+
+      <div class="card" style="margin-bottom: 25px; border-left: 3px solid #e67e22; height:auto; padding-bottom: 15px;">
+            <h3 style="margin-bottom: 2px;">☁️ Bose Cloud Emulation Setup (USB Hijack)</h3>
+            <div class="sub-head" style="margin-bottom: 8px;">Automated Telnet injection for standard speakers (ST10, 20, 30, Soundbars) Wireless Link Adapters do not support the USB Hijack. However, this app automatically applies a software bypass so your WLA functions seamlessly alongside standard speakers.</span>.</div>
+            
+            <div style="margin-top:12px;">
+                <h4 style="margin-top:0; margin-bottom:2px; color:var(--text); font-size:0.9em;">Step 1: Preparation & USB Stick</h4>
+                <div style="font-size:0.85em; color:var(--text); opacity:0.9;">
+                    <strong>Prerequisite:</strong> Ensure your speaker is updated to the latest firmware. If needed, see "<span style="font-size: 0.84em;">MANUAL FIRMWARE UPDATE (USB)</span>" in Setup Guide or use the official Bose app before proceeding.
+                    <ul style="margin-top:4px; margin-bottom:0; padding-left:20px; color:var(--text);">
+						<li>Format a USB drive as <strong>FAT32 (MBR Partition)</strong>. Do <strong>not</strong> use exFAT or NTFS. <span style="opacity:0.9;">(Use a tool like <a href="http://ridgecrop.co.uk/index.htm?guiformat.htm" target="_blank" style="color:var(--accent); font-weight:bold; text-decoration:none;">GUIFormat</a> for drives over 32GB).</span></li>
+                        <li style="margin-top:3px;">Create an empty file named <strong style="background:rgba(128,128,128,0.2); padding:2px 4px; border-radius:3px;">remote_services</strong> on the root of the drive (ensure it has no .txt extension).</li>
+                        <li style="margin-top:3px;">Insert the drive into the speaker. Reboot the speaker (from the Admin page or unplug/plugin speaker).</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div style="margin-top:15px;">
+                <h4 style="margin-top:0; margin-bottom:4px; color:var(--text); font-size:0.9em;">Step 2: Review Script</h4>
+				<textarea id="telnet-script" class="console-preview" style="height:170px;" readonly></textarea>
+				
+                <h4 style="color:var(--text); font-size:0.9em; margin-top:15px; margin-bottom:6px;">Step 3: Select Speaker & Inject</h4>
+                <div class="stream-controls" style="background:transparent; border:none; padding:0; gap:10px;">
+                    <select id="telnet-target" style="padding:8px; flex-grow:1; min-width:200px; width:100%; box-sizing:border-box;"></select>
+                    <button class="primary" style="background:#e67e22; color:white; white-space:nowrap; flex:1;" onclick="injectCloudConfig(this)">⚡ Inject Configuration</button>
+                    <button class="primary" style="background:#e74c3c; color:white; white-space:nowrap; flex:1;" onclick="removeCloudConfig(this)">🗑️ Remove Emulation</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="doc-modal" class="modal">
+  <div class="modal-content" style="width: 400px;">
+    <div style="display:flex; justify-content:space-between; margin-bottom:20px;">
+        <h2 style="margin:0;">Reference Documents</h2>
+        <button onclick="document.getElementById('doc-modal').style.display='none'" style="border:none; background:none; font-size:1.5em; color:var(--text); opacity:0.6; cursor:pointer;">&times;</button>
+    </div>
+    <div class="step-box">
+      <div class="step-text">
+        <a href="#" onclick="openDoc('docs/SoundTouchHybridDocumentation.pdf'); return false;" style="display:block; margin-bottom:15px; font-size:1.1em;">📄 Bose SoundTouch Hybrid Documentation</a>
+        <a href="https://www.youtube.com/watch?v=R6mbTRBEBYA" target="_blank" style="display:block; margin-bottom:15px; font-size:1.1em;">📺 Bose SoundTouch Hybrid 2026 Demo Video</a>
+		<a href="https://www.youtube.com/watch?v=3BhAkpsZjBI" target="_blank" style="display:block; margin-bottom:15px; font-size:1.1em;">📺 Bose SoundTouch Hybrid 2026 V2 Enhancements Demo Video</a>
+		<a href="https://www.youtube.com/watch?v=ERsoMmyOpEU" target="_blank" style="display:block; margin-bottom:15px; font-size:1.1em;">📺 Bose SoundTouch Hybrid 2026 V3 Enhancements Demo Video</a>
+        <a href="https://github.com/TJGigs/Bose-SoundTouch-Hybrid-2026" target="_blank" style="display:block; margin-bottom:15px; font-size:1.1em;">💻 Official GitHub Repository (Source Code)</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="pdf-modal" class="modal">
+  <div class="modal-content pdf-mode">
+    <div style="display:flex; justify-content:space-between; align-items:center;">
+        <h3 style="margin:0;">Document Viewer</h3>
+        <div style="display:flex; gap:10px;">
+            <button class="btn-sm" onclick="openExternalDoc()">Open in Browser ↗</button>
+            <button onclick="closeDoc()" style="border:none; background:none; font-size:2em; color:var(--text); opacity:0.6; cursor:pointer; line-height:1;">&times;</button>
+        </div>
+    </div>
+    <object id="pdf-frame" class="pdf-frame" data="" type="application/pdf">
+        <div style="padding:20px; text-align:center; color:var(--text); opacity:0.6;">
+            Preview not available on this device.<br>
+            <button class="btn" style="margin-top:10px;" onclick="openExternalDoc()">Open PDF</button>
+        </div>
+    </object>
+  </div>
+</div>
+
+<div id="h-modal" class="modal">
+  <div class="modal-content">
+    <div style="display:flex; justify-content:space-between; margin-bottom:20px;">
+        <h2 style="margin:0;">Manual Setup Guide</h2>
+        <button onclick="document.getElementById('h-modal').style.display='none'" style="border:none; background:none; font-size:1.5em; color:var(--text); opacity:0.6; cursor:pointer;">&times;</button>
+    </div>
+    <div class="step-box">
+      <span class="step-title">📡 MANUAL WI-FI SETUP</span>
+      <div class="step-text">
+        1. Power on the speaker.<br>
+        2. Press and hold <strong>2</strong> and <strong>- (Volume Down)</strong> for 5 seconds.<br>
+        3. The Wi-Fi indicator will blink amber (Setup Mode).<br>
+        4. Connect your device to Wi-Fi: <em>"Bose SoundTouch X"</em>.<br>
+        5. Visit: <a href="http://192.168.1.1:8090" target="_blank">http://192.168.1.1:8090</a>
+      </div>
+    </div>
+    <div class="step-box">
+      <span class="step-title">🔵 MANUAL BLUETOOTH PAIRING</span>
+      <div class="step-text">
+        1. Select <strong>Bluetooth</strong> source.<br>
+        2. Hold <strong>Bluetooth/AUX</strong> button until light blinks Blue.<br>
+        3. Scan and pair on your phone.<br><br>
+        <strong>Clear List:</strong> Hold <strong>Bluetooth/AUX</strong> for 10s (Double Tone).
+      </div>
+    </div>
+	<div class="step-box">
+      <span class="step-title">🔌 MANUAL FIRMWARE UPDATE (USB)</span>
+      <div class="step-text">
+        1. Connect the speaker to your computer via via USB/Micro-USB setup cable.<br>
+        2. Open a web browser.<br>
+        3. Visit the hidden update page: <a href="http://203.0.113.1/update.html" target="_blank">http://203.0.113.1/update.html</a><br>
+        4. Select and upload your <em>Update.stu</em> firmware file.
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="scriptModal" style="display:none; position:fixed; z-index:9999; left:0; top:0; width:100%; height:100%; overflow:auto; background-color:rgba(0,0,0,0.6);">
+  <div style="background-color:#1e1e1e; color: #d4d4d4; margin:10% auto; padding:25px; border:1px solid #444; width:80%; max-width:700px; border-radius: 8px; font-family: sans-serif;">
+    <h3 style="color: #fff; margin-top: 0;">Download USB WiFI Setup Script</h3>
+    <p style="color: #ffaa00; font-size: 14px; font-weight: bold; border-left: 4px solid #ffaa00; padding-left: 10px;">
+      🍎 MAC USERS: This script is for Windows only. To setup speaker Wi-Fi via Mac, Use the native Bose method by connecting to the speaker's temporary initial setup amber-light Wi-Fi network and go to http://192.168.1.1 in your browser.
+    </p>
+	<pre id="scriptContent" style="background:#000; color:#0f0; padding:15px; overflow-x:auto; white-space:pre; font-size: 13px; border-radius: 4px; border: 1px solid #333; line-height: 1.4;"></pre>
+	<div style="background-color: #2a3b4c; padding: 10px; border-radius: 4px; margin-top: 15px; font-size: 13px;">
+      <strong style="color: #66b3ff;">🛡️ BROWSER DOWNLOAD WARNING:</strong><br>
+      Your browser may warn you that this file is unrecognized or unsafe.<br>
+      To save it, select <strong>Keep</strong>, <strong>Save</strong>, or <strong>Accept</strong>.
+    </div>
+    <div style="text-align: right; margin-top: 20px;">
+      <button id="cancelScriptBtn" style="padding: 10px 20px; margin-right: 15px; cursor: pointer; background: #555; color: white; border: none; border-radius: 4px;">Cancel</button>
+      <button id="downloadScriptBtn" style="padding: 10px 20px; cursor: pointer; background: #007bff; color: white; border: none; border-radius: 4px; font-weight: bold;">Download Script</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  const SERVER_URL = window.location.protocol + "//" + window.location.host;
+
+// --- LOCAL STORAGE CONFIG LOGIC ---
+  let currentSearchOrder = [];
+  const SOURCE_NAMES = { 'spotify': 'Spotify', 'radio': 'Radio', 'nas': 'Local NAS', 'global': 'Global' };
+
+  function loadConfig() {
+      const savedOrder = localStorage.getItem('bose_search_order');
+      if (savedOrder) {
+          currentSearchOrder = JSON.parse(savedOrder);
+      } else {
+          currentSearchOrder = ['spotify', 'radio', 'nas','global']; // Default order
+      }
+      renderSortableList();
+  }
+
+function renderSortableList() {
+      const container = document.getElementById('sortable-list');
+      
+      // Force the container to be a horizontal row
+      container.style.flexDirection = 'row';
+      container.style.flexWrap = 'wrap';
+
+      // Removed the numbers and lowered min-width to 65px to force a single row on mobile
+      container.innerHTML = currentSearchOrder.map((key, index) => `
+          <div style="display: flex; flex-direction: column; align-items: center; background: rgba(128,128,128,0.1); padding: 12px 2px; border-radius: 6px; border: 1px solid var(--border); flex: 1; min-width: 65px;">
+              <span style="color: var(--text); font-weight: bold; font-size: 0.85em; margin-bottom: 10px; white-space: nowrap;">${SOURCE_NAMES[key]}</span>
+              <div style="display: flex; gap: 4px; width: 100%; padding: 0 5px; box-sizing: border-box;">
+                  <button class="btn-sm" style="flex: 1; padding: 5px 0; font-size: 0.8em;" onclick="moveItem(${index}, -1)" ${index === 0 ? 'disabled style="opacity:0.2"' : ''}>◀</button>
+                  <button class="btn-sm" style="flex: 1; padding: 5px 0; font-size: 0.8em;" onclick="moveItem(${index}, 1)" ${index === currentSearchOrder.length - 1 ? 'disabled style="opacity:0.2"' : ''}>▶</button>
+              </div>
+          </div>
+      `).join('');
+  }
+
+  function moveItem(index, direction) {
+      const newIndex = index + direction;
+      const temp = currentSearchOrder[index];
+      currentSearchOrder[index] = currentSearchOrder[newIndex];
+      currentSearchOrder[newIndex] = temp;
+      renderSortableList(); 
+  }
+
+  function saveSearchOrder() {
+      localStorage.setItem('bose_search_order', JSON.stringify(currentSearchOrder));
+      alert("Search order saved locally! Changes will reflect in the Library Manager.");
+  }
+  
+  // Load config when tools page opens
+  window.addEventListener('DOMContentLoaded', loadConfig);  
+ 
+  function toggleTheme() {
+      document.body.classList.toggle('light-mode');
+      const isLight = document.body.classList.contains('light-mode');
+      localStorage.setItem('theme', isLight ? 'light' : 'dark');
+  }
+
+  if (localStorage.getItem('theme') === 'light') document.body.classList.add('light-mode');
+
+  let currentDocUrl = "";
+  function openDoc(url) {
+      currentDocUrl = url;
+      document.getElementById('doc-modal').style.display = 'none'; 
+      if (window.innerWidth <= 768) {
+          const pdfModal = document.getElementById('pdf-modal');
+          const pdfFrame = document.getElementById('pdf-frame');
+          pdfFrame.setAttribute('data', url);
+          pdfModal.style.display = 'flex';
+      } else window.open(url, '_blank');
+  }
+  function closeDoc() {
+      document.getElementById('pdf-modal').style.display = 'none';
+      document.getElementById('pdf-frame').setAttribute('data', '');
+  }
+  function openExternalDoc() { if(currentDocUrl) window.open(currentDocUrl, '_blank'); }
+
+  function generateTelnetScript() {
+      const targetUrl = SERVER_URL;
+      const script = `cat << 'EOF' > /var/lib/Bose/PersistenceDataRoot/OverrideSdkPrivateCfg.xml
+<?xml version="1.0" encoding="utf-8"?>
+<SoundTouchSdkPrivateCfg>
+  <margeServerUrl>${targetUrl}</margeServerUrl>
+  <statsServerUrl>${targetUrl}</statsServerUrl>
+  <swUpdateUrl>${targetUrl}</swUpdateUrl>
+  <isZeroconfEnabled>true</isZeroconfEnabled>
+  <usePandoraProductionServer>true</usePandoraProductionServer>
+  <saveMargeCustomerReport>false</saveMargeCustomerReport>
+  <bmxRegistryUrl>${targetUrl}/bmx/registry/v1/services</bmxRegistryUrl>
+</SoundTouchSdkPrivateCfg>
+EOF`;
+      document.getElementById('telnet-script').value = script;
+  }
+
+function generateLinkPreview() {
+      const serverIpAndPort = SERVER_URL.replace('http://', '').replace('https://', '');
+      
+      // Telnet Script Preview
+      const telnetScript = `# The backend auto-calculates variables in brackets:
+async_responses on
+network wifi static set [SPEAKER_IP] [SUBNET] [GATEWAY] ${serverIpAndPort}
+network wifi static enable
+sys reboot`;
+
+      // Presets Preview
+      let presetScript = `# Direct XML Push via Port 8090 (/storePreset)\n`;
+      for(let i=1; i<=6; i++) {
+          presetScript += `[Hybrid Preset ${i}] -> ${SERVER_URL}/preset/${i}.mp3\n`;
+      }
+
+      const telPreview = document.getElementById('link-telnet-preview');
+      const prePreview = document.getElementById('link-preset-preview');
+      
+      if(telPreview) telPreview.value = telnetScript;
+      if(prePreview) prePreview.value = presetScript;
+  }
+  
+async function fetchLogs() {
+      const viewer = document.getElementById('live-log-viewer');
+      if (!viewer) return;
+      viewer.value = "Fetching logs...";
+      try {
+          const res = await fetch('/api/logs');
+          const text = await res.text();
+          viewer.value = text || "No logs available yet.";
+          // Auto-scroll to the bottom (newest logs)
+          viewer.scrollTop = viewer.scrollHeight;
+      } catch (e) {
+          viewer.value = "Failed to load logs. Is the server running?";
+      }
+  }
+
+  function downloadLogs() {
+      const text = document.getElementById('live-log-viewer').value;
+      if (!text || text.includes("Fetching logs...")) return alert("No logs to download yet.");
+      
+      const blob = new Blob([text], { type: 'text/plain' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = `hybrid-server-logs-${new Date().toISOString().slice(0,10)}.txt`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+  }
+  let liveLogTimer = null;
+
+  function toggleLogWindow() {
+      const container = document.getElementById('log-container');
+      const chevron = document.getElementById('log-chevron');
+      
+      if (container.style.display === 'none') {
+          // Open the window
+          container.style.display = 'block';
+          chevron.innerText = '▲';
+          fetchLogs(); // Fetch immediately on open
+          
+          // Start interval if checkbox is checked
+          if (document.getElementById('auto-refresh-toggle').checked) {
+              liveLogTimer = setInterval(fetchLogs, 2000);
+          }
+      } else {
+          // Close the window & stop fetching to save resources
+          container.style.display = 'none';
+          chevron.innerText = '▼';
+          clearInterval(liveLogTimer);
+      }
+  }
+
+  function toggleAutoRefresh() {
+      const isChecked = document.getElementById('auto-refresh-toggle').checked;
+      if (isChecked) {
+          fetchLogs(); // Update immediately
+          liveLogTimer = setInterval(fetchLogs, 2000);
+      } else {
+          clearInterval(liveLogTimer); // Stop updating
+      }
+  }
+  
+  async function toggleVerboseDebug() {
+      const isChecked = document.getElementById('verbose-debug-toggle').checked;
+      try {
+          await fetch('/api/admin/toggle_debug', {
+              method: 'POST',
+              headers: {'Content-Type': 'application/json'},
+              body: JSON.stringify({ debug: isChecked })
+          });
+      } catch (e) {
+          console.error("Failed to toggle debug", e);
+      }
+  }
+  
+async function loadTools() {
+      generateTelnetScript();
+
+      const statusRes = await fetch('/api/status');
+      const devices = await statusRes.json();
+
+		// hardware type check only
+		const isLink = (d) => d.type && d.type.toLowerCase().includes("link");
+      
+      const stdSpeakers = devices.filter(d => d.online && !isLink(d));
+      
+      const allOptions = devices.filter(d => d.online).map(d => `<option value="${d.ip}">${d.name} (${d.ip})</option>`).join('');
+      const stdOptions = stdSpeakers.map(d => `<option value="${d.ip}">${d.name} (${d.ip})</option>`).join('');
+      
+      const usbOption = `<option value="203.0.113.1">🔌 USB Cable / Initial Wi-Fi Setup (203.0.113.1)</option>`;
+      
+      // Populate dropdowns properly
+      const wifiTarget = document.getElementById('wifi-target');
+      const telnetTarget = document.getElementById('telnet-target');
+      // Wi-Fi get everyone
+      if (wifiTarget) wifiTarget.innerHTML = usbOption + allOptions;     
+      // Cloud Emulation gets STANDARD SPEAKERS ONLY (WLA filtered out)
+      if (telnetTarget) telnetTarget.innerHTML = stdOptions || `<option value="">No standard speakers found</option>`;
+  }
+  
+  // --- EXISTING FUNCTIONS ---
+  async function injectCloudConfig(btn) {
+      const ip = document.getElementById('telnet-target').value;
+      const script = document.getElementById('telnet-script').value;
+      if(!ip) return alert("Please select a speaker.");
+      if(!confirm(`Are you sure you want to inject the Cloud Emulation config into ${ip}?\n\nMake sure the USB stick is plugged in first.`)) return;
+      const orig = btn.innerText; btn.innerText = "Injecting..."; btn.disabled = true;
+      try {
+          const res = await fetch('/api/admin/inject_cloud', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ ip, script }) });
+          const data = await res.json();
+          if(data.success) { alert("Success! The script was injected and the speaker is rebooting."); btn.innerText = "✅ Done"; } 
+          else { alert("Error: " + (data.error || "Injection failed.")); btn.innerText = "❌ Failed"; }
+      } catch(e) { alert("Network Error: " + e.message); btn.innerText = "❌ Error"; }
+      setTimeout(() => { btn.innerText = orig; btn.disabled = false; }, 4000);
+  }
+
+  async function removeCloudConfig(btn) {
+      const ip = document.getElementById('telnet-target').value;
+      if(!ip) return alert("Please select a speaker.");
+      if(!confirm(`Are you sure you want to REMOVE the Cloud Emulation from ${ip}?`)) return;
+      const orig = btn.innerText; btn.innerText = "Removing..."; btn.disabled = true;
+      try {
+          const res = await fetch('/api/admin/remove_cloud', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ ip }) });
+          const data = await res.json();
+          if(data.success) { alert("Success! The override file was deleted and the speaker is rebooting."); btn.innerText = "✅ Removed"; } 
+          else { alert("Error: " + (data.error || "Removal failed.")); btn.innerText = "❌ Failed"; }
+      } catch(e) { alert("Network Error: " + e.message); btn.innerText = "❌ Error"; }
+      setTimeout(() => { btn.innerText = orig; btn.disabled = false; }, 4000);
+  }
+
+  async function restartMass(btn) {
+      if(!confirm("Are you sure you want to restart the Music Assistant container?")) return;
+      const orig = btn.innerText; btn.innerText = "Restarting..."; btn.disabled = true;
+      try {
+          const res = await fetch('/api/admin/restart_ma', { method: 'POST' });
+          const data = await res.json();
+          if (data.success) { alert("Restart Command Sent!"); btn.innerText = "✅ Command Sent"; } 
+          else { alert("Error: " + (data.error || "Unknown Error")); btn.innerText = "❌ Failed"; }
+      } catch(e) { alert("Network Error: " + e.message); btn.innerText = "❌ Error"; }
+      setTimeout(() => { btn.innerText = orig; btn.disabled = false; }, 5000);
+  }
+  
+  async function restartHybrid(btn) {
+      if(!confirm("Are you sure you want to restart the SoundTouch Hybrid application?")) return;
+      const orig = btn.innerText; btn.innerText = "Restarting..."; btn.disabled = true;
+      try {
+          await fetch('/api/admin/restart_hybrid', { method: 'POST' });
+          alert("Restart command sent!");
+      } catch(e) { alert("Server is rebooting."); }
+      setTimeout(() => { btn.innerText = orig; btn.disabled = false; }, 5000);
+  }
+  
+async function pushWifi(btn) {
+      const ip = document.getElementById('wifi-target').value;
+      const ssid = document.getElementById('wifi-ssid').value;
+      const pass = document.getElementById('wifi-pass').value;
+      
+      if(!ssid) return alert("❌ Please enter a Network Name (SSID).");
+      if(!pass) return alert("❌ Please enter the Wi-Fi Password.");
+      
+      const isUsb = (ip === "203.0.113.1" || ip === "192.168.1.1");
+      const orig = btn.innerText;
+      btn.innerText = "Pushing...";
+      btn.disabled = true;
+      
+      try {
+          if (isUsb) {
+              // ==========================================
+              // PATH A: USB SETUP (Custom Modal Preview)
+              // ==========================================
+              
+              const batContent = `@echo off
+echo ===================++++++=====================
+echo SoundTouch Hybrid USB Wi-Fi Provisioning Tool
+echo =========================+++++===============
+echo Target Network: ${ssid}
+echo.
+echo Connecting to speaker via USB...
+echo Provisioning can take a minute or so...
+
+REM --- Hunt down PowerShell automatically ---
+set "PS_CMD="
+if exist "%SystemRoot%\\System32\\WindowsPowerShell\\v1.0\\powershell.exe" set "PS_CMD=%SystemRoot%\\System32\\WindowsPowerShell\\v1.0\\powershell.exe"
+if exist "%SystemRoot%\\SysWOW64\\WindowsPowerShell\\v1.0\\powershell.exe" set "PS_CMD=%SystemRoot%\\SysWOW64\\WindowsPowerShell\\v1.0\\powershell.exe"
+if exist "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe" set "PS_CMD=C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe"
+if "%PS_CMD%"=="" set "PS_CMD=powershell.exe"
+
+REM --- Execute the payload with Error Handling and 12-second delay ---
+"%PS_CMD%" -NoProfile -ExecutionPolicy Bypass -Command "try { $s=New-Object System.Net.Sockets.TcpClient('${ip}',17000); $st=$s.GetStream(); $w=New-Object System.IO.StreamWriter($st); $w.WriteLine('network wifi profiles clear'); $w.Flush(); Start-Sleep -s 3; $w.WriteLine('network wifi profiles add ${ssid} wpa_or_wpa2 ${pass}'); $w.Flush(); Start-Sleep -s 12; $w.WriteLine('sys reboot'); $w.Flush(); Start-Sleep -s 1; $w.Close(); $s.Close(); Write-Host ''; Write-Host '[SUCCESS] Commands sent successfully!'; Write-Host 'The speaker will now reboot.'; } catch { Write-Host ''; Write-Host '[ERROR] Could not connect to the speaker.'; Write-Host 'Please ensure the USB cable is plugged in and the Wi-Fi light is SOLID AMBER.'; Write-Host 'If the light is blinking, wait for it to stop before running this script.'; }"
+
+echo.
+pause`;
+
+              // 1. Inject the code into our custom modal and display it
+              document.getElementById('scriptContent').innerText = batContent;
+              document.getElementById('scriptModal').style.display = 'block';
+
+              // 2. Handle the 'Cancel' button click
+              document.getElementById('cancelScriptBtn').onclick = function() {
+                  document.getElementById('scriptModal').style.display = 'none';
+                  btn.innerText = orig;
+                  btn.disabled = false;
+              };
+
+              // 3. Handle the 'Download' button click
+              document.getElementById('downloadScriptBtn').onclick = function() {
+                  document.getElementById('scriptModal').style.display = 'none';
+                  
+                  // Generate and download the file
+                  const blob = new Blob([batContent], { type: 'text/plain' });
+                  const url = window.URL.createObjectURL(blob);
+                  const a = document.createElement('a');
+                  a.href = url;
+                  a.download = `Bose_USB_Setup_${ssid}.bat`;
+                  document.body.appendChild(a);
+                  a.click();
+                  window.URL.revokeObjectURL(url);
+                  document.body.removeChild(a);
+
+                  // Show the final physical instructions
+                  alert(
+                      "📥 Please run 'Bose_USB_Setup_" + ssid + ".bat' from your Downloads folder.\n\n" +
+                      "1. IF INSTALLING A FACTORY RESET SPEAKER:\n" +
+                      "When the script finishes and speaker starts to reboot, immediately swap the USB cable for your 'remote_services' thumb drive.\n" +
+                      "(If you miss the reboot window then unplug power, insert thumb drive, and reconnect power.)\n" +
+					  "Then proceed to the Cloud Emulation Setup steps.\n\n" +
+                      "2. IF RESCUING A BAD WI-FI CONNECTION:\n" +
+                      "When the script finishes, unplug the USB cable and wait for the speaker to finish rebooting and refresh the Speaker Admin Page."
+                  );
+                  
+                  btn.innerText = "✅ Downloaded";
+                  setTimeout(() => { btn.innerText = orig; btn.disabled = false; }, 4000);
+              };
+              // We return here so the main function stops and waits for the user's click
+              return;
+          } else {
+              // ==========================================
+              // PATH B: NETWORK SWITCH (Via HOST NAS)
+              // ==========================================
+			// 1. universal confirmation message
+              const confirmMsg = `Are you sure you want to push these Wi-Fi settings to ${ip}?\n\nThe speaker will delete its current network, save the new one, and reboot.\n\n)`;
+
+              if(!confirm(confirmMsg)) {
+                  btn.innerText = orig; 
+                  btn.disabled = false;
+                  return;
+              }
+			// 2. fetch the real hardware type so the backend knows what to do
+              const statusRes = await fetch('/api/status');
+              const devices = await statusRes.json();
+              const targetDevice = devices.find(d => d.ip === ip);
+              
+              const isLinkTarget = targetDevice ? 
+                  ((targetDevice.type && targetDevice.type.toLowerCase().includes("link")) || 
+                   (targetDevice.name && targetDevice.name.toLowerCase().includes("link"))) : false;
+
+              // 3. Send the command!
+              const res = await fetch('/api/admin/set_wifi', {
+                  method: 'POST',
+                  headers: {'Content-Type':'application/json'},
+                  body: JSON.stringify({ 
+                        ip, 
+                        ssid, 
+                        password: pass, 
+                        isLinkTarget // passes true or false to the backend
+                  })
+              });
+
+              const data = await res.json();
+              
+              if(data.success) {
+                  alert("✅ Network Switch complete!\n\nThe speaker is rebooting to connect to the new network.\n\n⚠️ IMPORTANT: If it fails to connect, you will have to use the USB Setup Cable approach to rescue it.");
+                  btn.innerText = "✅ Sent";
+              } else {
+                  alert("❌ Error: " + (data.error || "Failed to push Wi-Fi."));
+                  btn.innerText = "❌ Failed";
+              }
+          }
+      } catch(e) {
+          alert("❌ Network Error: " + e.message);
+          btn.innerText = "❌ Error";
+      }
+      
+      setTimeout(() => { btn.innerText = orig; btn.disabled = false; }, 4000);
+  }
+  
+  loadTools();
+</script>
+</body>
+</html>

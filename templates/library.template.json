@@ -1,0 +1,17 @@
+[
+  {
+    "uuid": "b93c3f98",
+    "slot": 4,
+    "speakerIp": "",
+    "name": "KJAZZ 88.1",
+    "subtitle": "radio • Tunein",
+    "uri": "tunein--aicmaVtc://radio/s37062",
+    "image": "http://cdn-profiles.tunein.com/s37062/images/logoq.jpg?t=1",
+    "type": "radio",
+    "provider": "tunein",
+    "settings": {
+      "shuffle": false,
+      "repeat": "off"
+    }
+  }
+]
