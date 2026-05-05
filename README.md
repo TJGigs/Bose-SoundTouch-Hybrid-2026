@@ -146,7 +146,7 @@ Before proceeding with the instructions below, please do the following:
 
 5. Restart Appliocation: Once the files are configured restart the container to launch Bose SoundTouch Hybrid 2026
    * NAS/GUI: Click "`Restart`" on the container in your management interface.
-   * Command Line: Run `docker compose restar`t
+   * Command Line: Run `docker compose -f bose-soundtouch-hybrid.yml restart`
 
 6. **Install the Web App:** Open your mobile browser and navigate to the SoundTouch Hybrid local web address (e.g., http://<YOUR_SERVER_IP>:3000/control.html). Tap **"Add to Home Screen"** to install it as a native-feeling app with a launch icon.
 
