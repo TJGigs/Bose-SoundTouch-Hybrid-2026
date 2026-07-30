@@ -1,4 +1,4 @@
-# <img src="../images/hybrid_icon.png" width="30"> Bose SoundTouch Hybrid v4.1
+# <img src="../images/hybrid_icon.png" width="30"> Bose SoundTouch Hybrid v4.2
 
 **A free, open-source private SoundTouch cloud streaming service and application replacing the deactivated Bose Cloud Service to maintain 100% of the smart speaker functionality of SoundTouch Speakers and Wireless Link. Physical Presets Included!**
 
@@ -54,7 +54,7 @@ This solution is a "Hybrid" because it merges native Bose hardware capabilities 
 **The Components:**
 
 - **Cloud Emulation ("The Bose Cloud")** — with the official Bose Cloud decommissioned, speakers need a local emulator to authorize sources, manage accounts, and maintain presets. The local implementation (`bose_cloud.js`) also acts as a "sinkhole," gracefully intercepting obsolete cloud handshakes and trapping unnecessary telemetry, firmware checks, and destructive account-deletion requests with fake "success" responses.
-- **Music Assistant ("The Brain")** — serves as the backend core. MASS acts as a universal provider aggregator: it manages streaming credentials, scans local NAS libraries, and controls the master playback queue (v2.9.5+ required). Because MASS normalizes disparate providers (Spotify, Apple Music, TuneIn, local files, etc.) into one API, adding a new provider requires zero code changes on the Hybrid side — only configuration inside MASS itself.
+- **Music Assistant ("The Brain")** — serves as the backend core. MASS acts as a universal provider aggregator: it manages streaming credentials, scans local NAS libraries, and controls the master playback queue (v2.9.9+ required). Because MASS normalizes disparate providers (Spotify, Apple Music, TuneIn, local files, etc.) into one API, adding a new provider requires zero code changes on the Hybrid side — only configuration inside MASS itself.
 - **The Hybrid Bridge ("The Translator")** — a custom Node.js application bridging the legacy Bose LAN API and the modern Music Assistant API. It intercepts requests from physical speakers and translates them into backend commands.
 - **The Unified Web App ("The Interface")** — a comprehensive web app that directly replaces the SoundTouch app: playback, library management, multi-speaker grouping, and device administration all in one place.
 
@@ -72,7 +72,7 @@ Implementing this architecture required extensive trial and error — from bypas
 
 **The Problem.** By default, Bose speakers are hardcoded to seek `bose.com` servers for their cloud handshake. Without redirecting that traffic to the local emulator, none of the rest of this system can function.
 
-**The Fix.** Speaker onboarding is a fully automated injection sequence that runs on first boot — no USB drive, no Telnet backdoor, no manual firmware step required from the user. The system opens a connection to the speaker's Gabbo System Bus (port 8080) directly over the network and injects the override sequence, permanently redirecting `margeServerUrl`, `statsServerUrl`, and the BMX registry to the local Private Cloud.
+**The Fix.** Speaker onboarding is a fully automated injection sequence that runs on first boot — no USB drive, no Telnet backdoor, no manual firmware step required from the user. The system opens a connection to the speaker's Gabbo System Bus (port 8080) directly over the network and injects the override sequence, permanently redirecting `margeServerUrl`, `statsServerUrl`, and the BMX registry to the local Private Cloud. (These URLs are always numeric IPs by the time they reach the speaker, never a hostname — see §3.4's *Hostname-Safe Configuration* for why that matters.)
 
 **The Local Emulator (Core Provisioning & Authorization).** Once redirected, the SoundTouch Hybrid server completely replaces the Bose servers, actively managing the handshakes required to keep the hardware authenticated:
 
@@ -116,6 +116,14 @@ This is an extension of the same LOCAL_INTERNET_RADIO backdoor mechanism in §3.
 **Handling IP Changes.** Every persisted reference to "which speaker" in this system — preset assignments, stereo pairs, scheduled events, power off timers — stores a speaker's IP address alongside its `deviceId` (a stable identifier baked into the hardware, captured the same time the IP is). If a speaker's IP address changes — a DHCP lease renewal, a router reboot — the network scan that runs on every boot re-matches speakers by `deviceId` and corrects any stored IP that no longer points at the right hardware, for the speaker list itself and for every preset assignment and stereo pair that references it.
 
 If a speaker's IP address changes while the app is already running, mid-session, that change won't be caught right away — a system restart is required, and once that happens, the speaker is found and corrected automatically. This also requires a `deviceId` to have been successfully captured when the reference was first created, which requires the speaker to have been reachable at that moment.
+
+**Scan Target: Subnet Derivation and Override.** The discovery sweep needs a subnet to scan, and by default it derives one from `MASS_IP` — on the assumption that the server, Music Assistant, and the speakers all share the same local network. That assumption breaks in one specific, common topology: the Home Assistant add-on deployment, where `MASS_IP` is documented to be Home Assistant's own IP address whenever MASS runs as a separate HA add-on rather than alongside this app. If a user's speakers sit on a different subnet or VLAN than Home Assistant itself — a deliberate network segmentation, not a misconfiguration — the derived subnet is simply wrong, and no scan of it will ever find the speakers.
+
+There's no way to infer the correct subnet in that case; it has to come from the user. `SCAN_SUBNET` (a CIDR block — e.g. `192.168.1.0/24`, or a larger non-`/24` range like `192.168.1.0/23` for a split network that spans two address blocks) overrides the derived value entirely when set, and is the only user-facing surface this fix adds. Everyone on a single flat network — the overwhelming majority of installs — sees no change at all.
+
+**Hostname-Safe Configuration.** `APP_IP` and `MASS_IP` are also accepted as local DNS hostnames rather than numeric IPs. That's convenient for a user whose server's IP might change, but naive handling would be dangerous: both values get written directly into a speaker's own NVRAM as part of the cloud-redirect sequence in §3.1 (`bmxRegistryUrl`, `statsServerUrl`, `margeServerUrl`, and the preset stream URLs in §3.2). A hostname configured there would have to be resolved by the SoundTouch's own ~2013-era embedded firmware, on its own network stack, every time it phones home — and that firmware's DNS capability for an arbitrary local hostname is unverified and not something this system can control or test for.
+
+The fix: any configured hostname is resolved to a numeric IP once, in this app's own code — using this app's own DNS resolution, not the speaker's — at boot, and again on the same cadence as the scheduled speaker audit (§3.11) so a hostname's underlying IP drifting mid-runtime still gets caught. Only the resolved numeric IP is ever written to a speaker's NVRAM or used for the discovery sweep; the raw hostname the user typed is never passed downstream, and a speaker is never asked to resolve anything itself, regardless of what's configured in `.env`.
 
 ### 3.5 Hardware Multi-Room Grouping
 
@@ -239,10 +247,44 @@ The logic cascades through all three paths in order; if every path fails, the sy
 
 ### 3.15 Home Assistant Ingress: Dynamic Port Assignment
 
-Early versions of the HA add-on exposed a user-editable **Bose SoundTouch Hybrid Port** option (`app_port`, default `3000`) alongside a static `ingress_port: 3000` in `config.yaml`. Supervisor reads `ingress_port` once, before the container starts, so it has no way to track a runtime option — if a user changed `app_port` to get off 3000 (commonly already claimed by Z-Wave.js on an HA host), the sidebar's **Open Web UI** button broke, because nothing was left listening on the port Supervisor's Ingress proxy still expected. Direct access at `http://<host-ip>:<app_port>/control.html` kept working; only the Ingress button was affected. (Originally reported as issue #150.)
+`config.yaml` sets `ingress_port: 0`, which tells Supervisor to assign the add-on a free host port automatically rather than a fixed number — avoiding a collision with anything else already using a common port (Z-Wave.js on 3000, for example). Per Supervisor's source (`supervisor/ingress.py`, `get_dynamic_port()`), the assignment is looked up by the add-on's slug and persisted to disk, not re-rolled — the same port is returned every time, across add-on restarts, Supervisor restarts, and full HA host reboots. It only changes if the add-on is uninstalled and reinstalled.
 
-**Fix:** `ingress_port: 0` in `config.yaml` instead of a static guess. Per Supervisor's own add-on config spec, `0` tells Supervisor to dynamically assign a free host port to the add-on. Confirmed directly against Supervisor's source (`supervisor/ingress.py`, `get_dynamic_port()`): the assignment is looked up by the add-on's slug and persisted to disk, not re-rolled — once assigned, the same port is returned every time, across add-on restarts, Supervisor restarts, and full HA host reboots. It only changes if the add-on is uninstalled and reinstalled.
+`run.sh` reads the assigned value back via `bashio::app.ingress_port` (which queries `GET /addons/self/info`) and writes it into `.env` as `APP_PORT` — the same variable every other deployment method already uses. Preset NVRAM injection ([preflight.js:267](../../routes/preflight.js#L267)) and the Ingress proxy both resolve off that one value, so there's no separate static/dynamic pair to keep in sync and no second listener needed. If the assigned port ever changes (only possible via uninstall/reinstall), the existing boot-time preflight drift check re-injects the corrected URL onto speaker NVRAM automatically.
 
-`run.sh` reads the assigned value back via `bashio::app.ingress_port` (which queries `GET /addons/self/info`) and writes it into `.env` as `APP_PORT` — the same variable every other deployment method already uses. Because preset NVRAM injection ([preflight.js:267](../../routes/preflight.js#L267)) and the Ingress proxy both resolve off that one value, there's no separate static/dynamic pair to drift out of sync, and no second listener is needed. If the assigned port ever did change (only possible via uninstall/reinstall), the existing boot-time preflight drift check already re-injects the corrected URL onto speaker NVRAM automatically — no new self-healing logic was needed for this.
+Since the port isn't something a user sets, `config.yaml`'s schema has no editable port field — only `assigned_app_port`, a read-only-in-practice field (Supervisor's schema has no native read-only type) that `run.sh` overwrites unconditionally on every boot regardless of what a user types into it, so the Configuration tab always displays the real value for reference.
 
-Since the port is no longer something a user sets, `app_port` was removed from `config.yaml`'s options/schema entirely and replaced with `assigned_app_port` — a read-only-in-practice field (Supervisor's schema has no native read-only type) that `run.sh` overwrites unconditionally on every boot, regardless of what a user might type into it, so the Configuration tab always displays the real value for reference.
+### 3.16 Scheduled Automation & On-Demand External Trigger
+
+**Scheduled Play — days and volume.** Each `scheduledEvents` entry can restrict itself to `weekday` or `weekend` (omitted means every day) and optionally carry a `volume` (omitted means leave the speaker at its current volume). The day-of-week check uses `now.getDay()`, read in the same scheduler tick (`routes/utils.js`) as the hour/minute already checked there. Volume is applied via `mass.setVolume()` — the same MASS command (`players/cmd/volume_set`) `syncVolumeToMass` uses in the opposite direction — after `executeSmartPreset()` succeeds, for `'play'` events only. The Tools page offers volume as a stepped select (5–100 in steps of 5, matching the hour/minute pickers).
+
+A speaker's schedules for a given action can't overlap: `all` (every day) can't coexist with anything else, and `weekday`/`weekend` can each exist only once. This is enforced at creation time — the Tools page's DAYS field only ever offers a value that doesn't already overlap an existing schedule for that speaker+action — since there's no in-place edit for an existing schedule, only delete and re-add.
+
+**Power Off Timer modes.** A timer's `mode` is `'always'` (default, omitted) or `'once'`. An always timer re-arms every time the speaker powers on. A once timer disables itself — the same `enabled` flag its own UI checkbox controls — the moment it successfully fires, persisted back to `settings.json`. Re-arming a fired one-time timer is just re-checking that same box.
+
+**On-Demand external trigger.** `POST /api/ondemand/:speakerIp` ([routes/controller.js](../../routes/controller.js)) fires the one On-Demand entry configured for a speaker — a `scheduledEvents` row with no `hour` set and a `trigger: 'ondemand'` marker — through the same `firePlayEvent()` helper the scheduler uses. A speaker can have at most one On-Demand entry per action.
+
+Setup steps, identical to the Home Assistant add-on's own Documentation tab (`ha-addon/DOCS.md`):
+
+1. **Create the On-Demand entry:** in SoundTouch Hybrid, go to **Tools → Scheduled Play / Off**. Add a new schedule, set **Trigger** to **On Demand**, then pick the speaker, preset, and (optionally) a volume. A speaker can have one On-Demand entry.
+2. **Add a `rest_command:` in Home Assistant:** edit `configuration.yaml` and add one entry per speaker you want to trigger:
+   ```yaml
+   rest_command:
+     soundtouch_hybrid_living_room:
+       url: "http://<your-HA-host-IP>:<port>/api/ondemand/<SPEAKER_IP>"
+       method: POST
+   ```
+   Use the same port shown in **Assigned App Port**, and the speaker's IP from the Speaker Configuration page.
+3. **Call it from any automation:** use `rest_command.soundtouch_hybrid_living_room` as the action — a motion sensor, a time trigger, a scene, anything Home Assistant supports.
+
+The webhook takes no parameters beyond the speaker's IP — it always plays whatever preset/volume you configured in step 1, so all the actual configuration stays in one place: this app, not scattered across Home Assistant automations. If the URL or speaker IP is wrong, or nothing's configured yet, the call returns a specific error explaining which — check the response in Home Assistant's automation trace if a call doesn't seem to work.
+
+Failure responses:
+
+| Scenario | Status | Response |
+|---|---|---|
+| Fired successfully | `200` | `{ "success": true }` |
+| IP doesn't match any configured speaker | `404` | `Unknown speaker IP '...' — check it matches a speaker on the Speaker Configuration page.` |
+| IP is a real speaker, but has no On-Demand entry | `404` | `No On Demand entry configured for ... — set one up on the Scheduled Play page.` |
+| Entry exists, but playback itself failed | `500` | `Failed to trigger playback — check the SoundTouch Hybrid server logs.` |
+
+`triggerOnDemand()` (`routes/utils.js`) checks whether the speaker is known and whether it has an On-Demand entry separately, so those two cases return distinct errors instead of an identical one.

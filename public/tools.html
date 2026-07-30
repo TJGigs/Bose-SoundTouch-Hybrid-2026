@@ -96,27 +96,26 @@
 						<div style="display: flex; flex-direction: column; gap: 12px;">
 							<label class="pref-label"><input type="checkbox" id="pref_autoSync" class="pref-checkbox"> Auto-Sync Slave Volume on Grouping</label>
 							<label class="pref-label"><input type="checkbox" id="pref_autoRestart" class="pref-checkbox"> Auto-Reload DLNA & AirPlay on Connection Error</label>
-							<label id="lbl_presetPreview" class="pref-label" style="opacity: 0.4; pointer-events: none;"><input type="checkbox" id="pref_presetPreview" class="pref-checkbox" disabled> Show Preset Preview</label>
+							<label id="lbl_presetPreview" class="pref-label" style="opacity: 0.4; pointer-events: none;"><input type="checkbox" id="pref_presetPreview" class="pref-checkbox" disabled> Show Preset Preview (Desktop Only)</label>
+							<label id="lbl_descriptivePresets" class="pref-label" style="opacity: 0.4; pointer-events: none;"><input type="checkbox" id="pref_descriptivePresets" class="pref-checkbox" disabled onchange="handleDescriptivePresetsToggle()"> Enable Descriptive Presets (Desktop & Mobile)</label>
 						</div>
 
 						<!-- Col 3: scheduled automations -->
 						<div style="display: flex; flex-direction: column; gap: 12px;">
-							<label id="lbl_doubleTapPresets" class="pref-label" style="opacity: 0.4; pointer-events: none;"><input type="checkbox" id="pref_doubleTapPresets" class="pref-checkbox" disabled> Enable Extended Presets</label>
+							<label id="lbl_doubleTapPresets" class="pref-label" style="opacity: 0.4; pointer-events: none;"><input type="checkbox" id="pref_doubleTapPresets" class="pref-checkbox" disabled> Enable Extended Presets (Double Tap)</label>
 							<label class="pref-label" style="display: flex; align-items: center; gap: 8px;">
 								<input type="checkbox" id="pref_scheduledSpeakerAudit" class="pref-checkbox" onchange="handleAuditToggle()">
 								Enable Speaker Audit at
 								<select id="pref_scheduledAuditHour" style="background:var(--input-bg); color:var(--input-text); border:1px solid var(--border); padding:2px 4px; border-radius:4px; font-size:0.9em; width:auto;" disabled></select>
 							</label>
-							<div>
-								<label class="pref-label" style="display: flex; align-items: center; gap: 8px;">
-									<input type="checkbox" id="pref_scheduledRestart" class="pref-checkbox" onchange="handleScheduledRestartToggle()">
-									Enable System Restart at
-									<select id="pref_scheduledRestartHour" style="background:var(--input-bg); color:var(--input-text); border:1px solid var(--border); padding:2px 4px; border-radius:4px; font-size:0.9em; width:auto;" disabled></select>
-								</label>
-								<label class="pref-label" style="margin-left: 28px; font-size: 0.85em; opacity: 0.8; margin-top: 4px;">
-									<input type="checkbox" id="pref_includeReboot" class="pref-checkbox" disabled> Include All Speaker Reboots
-								</label>
-							</div>
+							<label class="pref-label" style="display: flex; align-items: center; gap: 8px;">
+								<input type="checkbox" id="pref_scheduledRestart" class="pref-checkbox" onchange="handleScheduledRestartToggle()">
+								Enable System Restart at
+								<select id="pref_scheduledRestartHour" style="background:var(--input-bg); color:var(--input-text); border:1px solid var(--border); padding:2px 4px; border-radius:4px; font-size:0.9em; width:auto;" disabled></select>
+							</label>
+							<label class="pref-label" style="margin-left: 28px; font-size: 0.85em; opacity: 0.8;">
+								<input type="checkbox" id="pref_includeReboot" class="pref-checkbox" disabled> Include All Speaker Reboots
+							</label>
 						</div>
 
 					</div>
@@ -156,7 +155,7 @@
 				<h3 style="margin:0;">🕰️ Scheduled Play / Off</h3>
 				<span id="scheduledEventCount" style="background: var(--input-bg); padding: 4px 8px; border-radius: 4px; font-family: monospace; font-size: 0.9em; border: 1px solid var(--border);">0 Schedules</span>
 			</div>
-			<div class="sub-head" style="margin-top: 5px; margin-bottom: 0;">Automatically play a preset or power off a speaker at a set time every day.</div>
+			<div class="sub-head" style="margin-top: 5px; margin-bottom: 0;"><span>Automatically play a preset or power off a speaker at a set time — every day, or weekdays and weekends separately. Or set an On Demand entry to trigger from outside the app (e.g. a Home Assistant automation<span onclick="showOnDemandInfo()" title="How to call this from Home Assistant" style="cursor:pointer; display:inline-flex; align-items:center; justify-content:center; width:15px; height:15px; border-radius:50%; background:var(--accent-teal); color:#000; font-size:0.72em; font-weight:bold; vertical-align:middle; margin-left:4px;">ⓘ</span>).</span></div>
 
 			<div id="scheduledEventsCollapse" style="display: none; margin-top: 15px;">
 				<ul id="scheduledEventsList" style="list-style: none; padding: 0; margin-bottom: 15px; border: 1px solid var(--border); border-radius: 6px; overflow: hidden;">
@@ -165,6 +164,13 @@
 
 				<div style="display: flex; align-items: flex-end; gap: 10px; flex-wrap: wrap;">
 					<div>
+						<label style="display:block; font-size:0.75em; color:var(--text-secondary); margin-bottom:5px;">TRIGGER</label>
+						<select id="newEventTrigger" style="background:var(--input-bg); color:var(--input-text); border:1px solid var(--border); padding:8px; border-radius:4px;" onchange="updateNewEventTriggerUI()">
+							<option value="time">Time-based</option>
+							<option value="ondemand">On Demand</option>
+						</select>
+					</div>
+					<div id="newEventActionWrap">
 						<label style="display:block; font-size:0.75em; color:var(--text-secondary); margin-bottom:5px;">ACTION</label>
 						<select id="newEventAction" style="background:var(--input-bg); color:var(--input-text); border:1px solid var(--border); padding:8px; border-radius:4px;" onchange="updateNewEventActionUI()">
 							<option value="play">Play Preset</option>
@@ -173,7 +179,7 @@
 					</div>
 					<div style="flex-grow: 1; min-width: 150px;">
 						<label style="display:block; font-size:0.75em; color:var(--text-secondary); margin-bottom:5px;">SPEAKER</label>
-						<select id="newEventSpeaker" style="width:100%; background:var(--input-bg); color:var(--input-text); border:1px solid var(--border); padding:8px; border-radius:4px;">
+						<select id="newEventSpeaker" style="width:100%; background:var(--input-bg); color:var(--input-text); border:1px solid var(--border); padding:8px; border-radius:4px;" onchange="updateNewEventDaysOptions()">
 							<option value="" disabled selected>Select speaker...</option>
 						</select>
 					</div>
@@ -188,7 +194,13 @@
 							<option value="6">6</option>
 						</select>
 					</div>
-					<div>
+					<div id="newEventDaysWrap">
+						<label style="display:block; font-size:0.75em; color:var(--text-secondary); margin-bottom:5px;">DAYS</label>
+						<select id="newEventDays" style="background:var(--input-bg); color:var(--input-text); border:1px solid var(--border); padding:8px; border-radius:4px;">
+							<option value="all">Every Day</option>
+						</select>
+					</div>
+					<div id="newEventTimeWrap">
 						<label style="display:block; font-size:0.75em; color:var(--text-secondary); margin-bottom:5px;">TIME</label>
 						<div style="display:flex; gap:5px; align-items:center;">
 							<select id="newEventHour" style="background:var(--input-bg); color:var(--input-text); border:1px solid var(--border); padding:8px; border-radius:4px;">
@@ -198,6 +210,12 @@
 								<option value="" disabled selected>MM</option>
 							</select>
 						</div>
+					</div>
+					<div id="newEventVolumeWrap">
+						<label style="display:block; font-size:0.75em; color:var(--text-secondary); margin-bottom:5px;">VOLUME (optional)</label>
+						<select id="newEventVolume" style="background:var(--input-bg); color:var(--input-text); border:1px solid var(--border); padding:8px; border-radius:4px;">
+							<option value="">Unchanged</option>
+						</select>
 					</div>
 					<div>
 						<button id="addScheduledEventBtn" class="btn primary" style="white-space: nowrap; background: var(--accent-teal); border:none; padding: 8px 15px;" onclick="addScheduledEvent()">
@@ -235,6 +253,13 @@
 							<option value="60" selected>60 min</option>
 							<option value="90">90 min</option>
 						</select>
+					</div>
+					<div>
+						<label style="display:block; font-size:0.75em; color:var(--text-secondary); margin-bottom:5px;">&nbsp;</label>
+						<label style="display:flex; align-items:center; gap:6px; padding:8px 0; cursor:pointer; white-space:nowrap; color:var(--text);">
+							<input type="checkbox" id="newPowerOffTimerOnce" style="width:auto;">
+							Run Once
+						</label>
 					</div>
 					<div>
 						<button id="addPowerOffTimerBtn" class="btn primary" style="white-space: nowrap; background: var(--accent-teal); border:none; padding: 8px 15px;" onclick="addPowerOffTimer()">
@@ -557,6 +582,25 @@
 		</div>
 	</div>
 
+	<div id="ondemand-info-modal" class="modal">
+		<div class="modal-content" style="width: 460px;">
+			<div style="display:flex; justify-content:space-between; margin-bottom:15px;">
+				<h3 style="margin:0;">On Demand External Trigger</h3>
+				<button onclick="document.getElementById('ondemand-info-modal').style.display='none'" style="border:none; background:none; font-size:1.5em; color:var(--text); opacity:0.6; cursor:pointer;">&times;</button>
+			</div>
+			<div style="color:var(--text); margin-bottom:14px; font-size:0.95em; line-height:1.5;">
+				Trigger a speaker's On Demand entry from outside this app. Via Home Assistant automation, a motion sensor, anything on your network. No separate integration to install.
+			</div>
+			<div style="color:var(--text-secondary); font-size:0.8em; margin-bottom:4px; text-transform:uppercase; letter-spacing:0.05em;">Webhook</div>
+			<div id="ondemand-info-url" style="background:var(--input-bg); border:1px solid var(--border); border-radius:6px; padding:10px; font-family:monospace; font-size:0.85em; color:var(--text); margin-bottom:14px; word-break:break-all;"></div>
+			<div style="color:var(--text-secondary); font-size:0.8em; margin-bottom:4px; text-transform:uppercase; letter-spacing:0.05em;">Home Assistant configuration.yaml</div>
+			<pre id="ondemand-info-yaml" style="background:var(--input-bg); border:1px solid var(--border); border-radius:6px; padding:10px; font-family:monospace; font-size:0.8em; color:var(--text); margin:0 0 14px 0; white-space:pre-wrap; word-break:break-all;"></pre>
+			<div style="color:var(--text); font-size:0.85em; line-height:1.5;">
+				Set up the entry itself on this page (pick <strong>Trigger → On Demand</strong> below), then call <code>rest_command.soundtouch_hybrid_&lt;name&gt;</code> from any automation. It always plays whatever's configured for that speaker's On Demand entry here. Full details, including error responses, are in the <a href="https://github.com/TJGigs/Bose-SoundTouch-Hybrid/blob/main/public/docs/SoundTouchHybridDocumentation.md#316-scheduled-automation--on-demand-external-trigger" target="_blank">Technical Documentation</a>.
+			</div>
+		</div>
+	</div>
+
 	<div id="h-modal" class="modal">
 		<div class="modal-content">
 			<div style="display:flex; justify-content:space-between; margin-bottom:20px;">
@@ -699,6 +743,20 @@
 		    minSel.innerHTML = minOpts.join('');
 		}
 
+		// Scheduled Play's optional volume override — a tick-wheel select like hour/minute
+		// above, not free-typed, and deliberately starts at 5 (never 0) since a scheduled
+		// play muting the speaker is never what's wanted; "Unchanged" (leave volume alone)
+		// covers the "don't set a volume" case instead.
+		function populateVolumeSelect() {
+		    const volSel = document.getElementById('newEventVolume');
+		    if (!volSel) return;
+		    const volOpts = ['<option value="">Unchanged</option>'];
+		    for (let v = 5; v <= 100; v += 5) {
+		        volOpts.push(`<option value="${v}">${v}</option>`);
+		    }
+		    volSel.innerHTML = volOpts.join('');
+		}
+
 		function populateHourSelects() {
 		    const auditSel   = document.getElementById('pref_scheduledAuditHour');
 		    const restartSel = document.getElementById('pref_scheduledRestartHour');
@@ -709,6 +767,26 @@
 		}
 
 		// Handles programmatic unchecking and UI state rendering safely
+		function handleDescriptivePresetsToggle() {
+		    // Descriptive Presets makes the hover popup redundant (the name is already
+		    // shown inline), so the two settings are mutually exclusive. Use the
+		    // descriptive checkbox's own disabled state as a proxy for "v4 gating has
+		    // already run" — safe to restore Preset Preview only once that's true.
+		    const descChk = document.getElementById('pref_descriptivePresets');
+		    const ppChk   = document.getElementById('pref_presetPreview');
+		    const ppLabel = document.getElementById('lbl_presetPreview');
+		    if (!descChk || !ppChk) return;
+
+		    if (descChk.checked) {
+		        ppChk.checked = false;
+		        ppChk.disabled = true;
+		        if (ppLabel) { ppLabel.style.opacity = '0.4'; ppLabel.style.pointerEvents = 'none'; }
+		    } else if (!descChk.disabled) {
+		        ppChk.disabled = false;
+		        if (ppLabel) { ppLabel.style.opacity = ''; ppLabel.style.pointerEvents = ''; }
+		    }
+		}
+
 		function handleAuditToggle() {
 		    const check = document.getElementById('pref_scheduledSpeakerAudit');
 		    const sel   = document.getElementById('pref_scheduledAuditHour');
@@ -788,6 +866,8 @@
 		            subReboot.disabled = !fullSettingsPayload.scheduledRestart;
 		            document.getElementById('pref_doubleTapPresets').checked = fullSettingsPayload.doubleTapPresets === true;
             document.getElementById('pref_presetPreview').checked    = fullSettingsPayload.presetPreview === true;
+            document.getElementById('pref_descriptivePresets').checked = fullSettingsPayload.descriptivePresets === true;
+            handleDescriptivePresetsToggle();
 		            document.getElementById('pref_restrictedMode').checked = fullSettingsPayload.restrictedMode === true;
 		            document.getElementById('pref_adminPin').value = fullSettingsPayload.adminPin || '';
 		            document.getElementById('restrictedPinRow').style.display = fullSettingsPayload.restrictedMode ? 'flex' : 'none';
@@ -951,6 +1031,7 @@
 		    fullSettingsPayload.includeReboot         = document.getElementById('pref_includeReboot').checked;
 		    fullSettingsPayload.doubleTapPresets       = document.getElementById('pref_doubleTapPresets').checked;
 		    fullSettingsPayload.presetPreview          = document.getElementById('pref_presetPreview').checked;
+		    fullSettingsPayload.descriptivePresets     = document.getElementById('pref_descriptivePresets').checked;
 		    fullSettingsPayload.restrictedMode         = document.getElementById('pref_restrictedMode').checked;
 		    fullSettingsPayload.adminPin               = document.getElementById('pref_adminPin').value.trim();
 		    if (fullSettingsPayload.restrictedMode && !fullSettingsPayload.adminPin) {
@@ -1009,6 +1090,7 @@
 		    loadConfig();
 		    syncDebugToggle();
 		    populatePlayTimeSelect();
+		    populateVolumeSelect();
 		    // Init Dark Mode checkbox from localStorage
 		    const darkCheck = document.getElementById('pref_darkMode');
 		    if (darkCheck) darkCheck.checked = (localStorage.getItem('theme') !== 'light');
@@ -1144,6 +1226,30 @@
 		// =====================================================================
 		let scheduledEventsDevices = [];
 
+		// window.location accurately reflects this server's real, directly-callable
+		// address UNLESS the page is being viewed through Home Assistant's Ingress
+		// proxy (a path-based redirect, not this server's own host:port) — an Ingress
+		// URL can't be turned into something an external caller like a Home Assistant
+		// rest_command could actually use, so this falls back to an honest placeholder
+		// in that case rather than showing an address that looks real but wouldn't work.
+		function getOnDemandBaseUrl() {
+		    if (window.location.pathname.includes('hassio_ingress')) {
+		        return '<your-server-IP>:<port>';
+		    }
+		    return window.location.host;
+		}
+
+		function showOnDemandInfo() {
+		    const base = getOnDemandBaseUrl();
+		    document.getElementById('ondemand-info-url').textContent = `POST http://${base}/api/ondemand/<SPEAKER_IP>`;
+		    document.getElementById('ondemand-info-yaml').textContent =
+`rest_command:
+  soundtouch_hybrid_<name>:
+    url: "http://${base}/api/ondemand/<SPEAKER_IP>"
+    method: POST`;
+		    document.getElementById('ondemand-info-modal').style.display = 'flex';
+		}
+
 		function initScheduledEvents(devices) {
 		    scheduledEventsDevices = Array.isArray(devices) ? devices.filter(d => d.online) : [];
 		    renderScheduledEvents();
@@ -1178,21 +1284,28 @@
 		        const dev = scheduledEventsDevices.find(d => d.ip === evt.speakerIp);
 		        const spLabel = dev ? `${dev.name} (${evt.speakerIp})` : evt.speakerIp;
 
-		        const h = evt.hour ?? 0;
-		        const m = evt.minute ?? 0;
-		        const ampm = h < 12 ? 'AM' : 'PM';
-		        const h12  = h % 12 || 12;
-		        const timeLabel = `${h12}:${String(m).padStart(2,'0')} ${ampm}`;
+		        const isOnDemand = evt.trigger === 'ondemand';
+		        let timeLabel;
+		        if (isOnDemand) {
+		            timeLabel = 'On Demand';
+		        } else {
+		            const h = evt.hour ?? 0;
+		            const m = evt.minute ?? 0;
+		            const ampm = h < 12 ? 'AM' : 'PM';
+		            const h12  = h % 12 || 12;
+		            timeLabel = `${h12}:${String(m).padStart(2,'0')} ${ampm}`;
+		        }
 
 		        const actionLabel = evt.action === 'off' ? '🌙 Power Off' : `▶️ Preset ${evt.preset}`;
+		        const daysLabel = isOnDemand ? '' : (evt.days === 'weekday' ? ' · Weekdays' : evt.days === 'weekend' ? ' · Weekends' : '');
+		        const volLabel  = (evt.action === 'play' && evt.volume != null) ? ` · Vol ${evt.volume}` : '';
 
 		        const enabled = evt.enabled !== false;
 		        li.style.opacity = enabled ? '1' : '0.5';
 		        li.innerHTML = `
 		            <input type="checkbox" ${enabled ? 'checked' : ''} onchange="toggleScheduledEvent(${idx}, this.checked)" style="width:18px; height:18px; cursor:pointer; accent-color:var(--accent); flex-shrink:0;">
-		            <span style="color:var(--text); font-weight:bold; white-space:nowrap;">${timeLabel} — ${actionLabel} — ${spLabel}</span>
-		            <span style="flex-grow:1;"></span>
-		            <button onclick="removeScheduledEvent(${idx})" style="background:var(--danger); color:#fff; border:none; padding:5px 10px; border-radius:4px; cursor:pointer;">✕</button>
+		            <span style="color:var(--text); font-weight:bold; flex:1 1 200px; min-width:150px; word-break:break-word;">${timeLabel} — ${actionLabel} — ${spLabel}${daysLabel}${volLabel}</span>
+		            <button onclick="removeScheduledEvent(${idx})" style="background:var(--danger); color:#fff; border:none; padding:5px 10px; border-radius:4px; cursor:pointer; flex-shrink:0;">✕</button>
 		        `;
 		        list.appendChild(li);
 		    });
@@ -1200,62 +1313,151 @@
 		    updateNewEventSpeakerOptions();
 		}
 
-		// A speaker may have one PLAY schedule and one OFF schedule at once, just not two of
-		// the same action — so which speakers are "used" depends on the action currently picked.
-		function updateNewEventSpeakerOptions() {
-		    const sel       = document.getElementById('newEventSpeaker');
-		    const addBtn    = document.getElementById('addScheduledEventBtn');
-		    const actionSel = document.getElementById('newEventAction');
+		// A speaker's schedules for a given action must never overlap in days: 'all' (every
+		// day) is full coverage and can't coexist with anything else, while 'weekday' and
+		// 'weekend' are two halves that can coexist with each other but not a duplicate of
+		// themselves. Returns which 'days' values are still free to add without overlapping
+		// an existing schedule for this exact speaker+action pair. There's no in-place edit
+		// for an existing schedule (only delete + re-add), so blocking at creation time here
+		// is the only overlap guard this needs — no separate cleanup/auto-delete logic.
+		function getAvailableDaysFor(speakerIp, action) {
+		    const events = Array.isArray(fullSettingsPayload.scheduledEvents) ? fullSettingsPayload.scheduledEvents : [];
+		    const existing = events.filter(e => e.speakerIp === speakerIp && e.action === action).map(e => e.days || 'all');
+		    if (existing.length === 0) return ['all', 'weekday', 'weekend'];
+		    if (existing.includes('all')) return [];
+		    return ['weekday', 'weekend'].filter(d => !existing.includes(d));
+		}
+
+		// Populates the DAYS select with only the options getAvailableDaysFor() allows for
+		// whichever speaker+action is currently selected in the add-schedule form.
+		function updateNewEventDaysOptions() {
+		    const sel       = document.getElementById('newEventDays');
+		    const speakerSel = document.getElementById('newEventSpeaker');
+		    const actionSel  = document.getElementById('newEventAction');
 		    if (!sel) return;
 
+		    const ip     = speakerSel ? speakerSel.value : '';
+		    const action = actionSel ? actionSel.value : 'play';
+		    const labels = { all: 'Every Day', weekday: 'Weekday', weekend: 'Weekend' };
+		    const avail  = ip ? getAvailableDaysFor(ip, action) : ['all', 'weekday', 'weekend'];
+
+		    sel.innerHTML = avail.length
+		        ? avail.map(d => `<option value="${d}">${labels[d]}</option>`).join('')
+		        : '<option value="" disabled selected>Fully scheduled</option>';
+		}
+
+		// A speaker is disabled in the dropdown once it has no remaining capacity left for
+		// the selected trigger+action: time-based means no remaining 'days' coverage (an
+		// 'all' schedule, or both 'weekday' and 'weekend'); on-demand means it already has
+		// an on-demand entry (there's only ever one, since the webhook takes no preset
+		// param — see triggerOnDemand() in routes/utils.js).
+		function updateNewEventSpeakerOptions() {
+		    const sel        = document.getElementById('newEventSpeaker');
+		    const addBtn     = document.getElementById('addScheduledEventBtn');
+		    const actionSel  = document.getElementById('newEventAction');
+		    const triggerSel = document.getElementById('newEventTrigger');
+		    if (!sel) return;
+
+		    const trigger = triggerSel ? triggerSel.value : 'time';
 		    const action  = actionSel ? actionSel.value : 'play';
 		    const events  = Array.isArray(fullSettingsPayload.scheduledEvents) ? fullSettingsPayload.scheduledEvents : [];
-		    const usedIps = new Set(events.filter(e => e.action === action).map(e => e.speakerIp));
 
-		    const available = scheduledEventsDevices.filter(d => !usedIps.has(d.ip));
+		    const isFull = trigger === 'ondemand'
+		        ? (ip => events.some(e => e.speakerIp === ip && e.trigger === 'ondemand'))
+		        : (ip => getAvailableDaysFor(ip, action).length === 0);
+		    const fullLabel = trigger === 'ondemand' ? ' — Has On Demand' : ' — Fully Scheduled';
+
+		    const available = scheduledEventsDevices.filter(d => !isFull(d.ip));
 		    sel.innerHTML = '<option value="" disabled selected>Select speaker...</option>' +
 		        scheduledEventsDevices.map(d => {
-		            const used = usedIps.has(d.ip);
-		            return `<option value="${d.ip}" ${used ? 'disabled style="color:var(--text-secondary);"' : ''}>${d.name} (${d.ip})${used ? ' — Scheduled' : ''}</option>`;
+		            const full = isFull(d.ip);
+		            return `<option value="${d.ip}" ${full ? 'disabled style="color:var(--text-secondary);"' : ''}>${d.name} (${d.ip})${full ? fullLabel : ''}</option>`;
 		        }).join('');
 
 		    if (addBtn) addBtn.disabled = available.length === 0;
+		    updateNewEventDaysOptions();
 		}
 
 		function updateNewEventActionUI() {
 		    const action = document.getElementById('newEventAction')?.value;
 		    const presetWrap = document.getElementById('newEventPresetWrap');
+		    const volumeWrap = document.getElementById('newEventVolumeWrap');
 		    if (presetWrap) presetWrap.style.display = action === 'off' ? 'none' : '';
+		    if (volumeWrap) volumeWrap.style.display = action === 'off' ? 'none' : '';
+		    updateNewEventSpeakerOptions();
+		}
+
+		// On Demand entries are 'play'-only and have no time/days concept at all — they only
+		// ever fire when something calls /api/ondemand/:speakerIp. Toggling to On Demand
+		// hides everything that doesn't apply and forces Preset/Volume visible.
+		function updateNewEventTriggerUI() {
+		    const trigger = document.getElementById('newEventTrigger')?.value || 'time';
+		    const isOnDemand = trigger === 'ondemand';
+
+		    const actionWrap = document.getElementById('newEventActionWrap');
+		    const daysWrap   = document.getElementById('newEventDaysWrap');
+		    const timeWrap   = document.getElementById('newEventTimeWrap');
+		    if (actionWrap) actionWrap.style.display = isOnDemand ? 'none' : '';
+		    if (daysWrap)   daysWrap.style.display   = isOnDemand ? 'none' : '';
+		    if (timeWrap)   timeWrap.style.display   = isOnDemand ? 'none' : '';
+
+		    if (isOnDemand) {
+		        document.getElementById('newEventPresetWrap').style.display = '';
+		        document.getElementById('newEventVolumeWrap').style.display = '';
+		    } else {
+		        updateNewEventActionUI(); // restores the normal action-based Preset/Volume show-hide
+		    }
 		    updateNewEventSpeakerOptions();
 		}
 
 		async function addScheduledEvent() {
-		    const hourSel    = document.getElementById('newEventHour');
-		    const minSel     = document.getElementById('newEventMinute');
-		    const speakerSel = document.getElementById('newEventSpeaker');
-		    const actionSel  = document.getElementById('newEventAction');
-		    const presetSel  = document.getElementById('newEventPreset');
+		    const hourSel     = document.getElementById('newEventHour');
+		    const minSel      = document.getElementById('newEventMinute');
+		    const speakerSel  = document.getElementById('newEventSpeaker');
+		    const actionSel   = document.getElementById('newEventAction');
+		    const presetSel   = document.getElementById('newEventPreset');
+		    const daysSel     = document.getElementById('newEventDays');
+		    const volumeInput = document.getElementById('newEventVolume');
+		    const triggerSel  = document.getElementById('newEventTrigger');
 
-		    const hVal   = hourSel?.value;
-		    const mVal   = minSel?.value;
-		    const ip     = speakerSel?.value;
-		    const action = actionSel?.value || 'play';
+		    const ip      = speakerSel?.value;
+		    const trigger = triggerSel?.value || 'time';
 
-		    if (hVal === '' || hVal == null || mVal === '' || mVal == null || !ip) return alert('Please select a time and a speaker.');
+		    if (!ip) return alert('Please select a speaker.');
 
-		    const h = parseInt(hVal, 10);
-		    const m = parseInt(mVal, 10);
+		    let entry;
+		    if (trigger === 'ondemand') {
+		        entry = { speakerIp: ip, action: 'play', trigger: 'ondemand', enabled: true, preset: parseInt(presetSel?.value || '1', 10) };
+		        const volVal = volumeInput?.value;
+		        if (volVal !== '' && volVal != null) entry.volume = parseInt(volVal, 10);
+		    } else {
+		        const hVal = hourSel?.value;
+		        const mVal = minSel?.value;
+		        if (hVal === '' || hVal == null || mVal === '' || mVal == null) return alert('Please select a time.');
 
-		    const entry = { speakerIp: ip, action, hour: h, minute: m, enabled: true };
-		    if (action === 'play') entry.preset = parseInt(presetSel?.value || '1', 10);
+		        const action = actionSel?.value || 'play';
+		        entry = { speakerIp: ip, action, hour: parseInt(hVal, 10), minute: parseInt(mVal, 10), enabled: true };
+
+		        // 'all' is the default/omitted state — only store days when it narrows the schedule.
+		        const days = daysSel?.value;
+		        if (days && days !== 'all') entry.days = days;
+
+		        if (action === 'play') {
+		            entry.preset = parseInt(presetSel?.value || '1', 10);
+		            // Select only ever offers "" (Unchanged) or a multiple of 5 from 5-100 — no clamping needed.
+		            const volVal = volumeInput?.value;
+		            if (volVal !== '' && volVal != null) entry.volume = parseInt(volVal, 10);
+		        }
+		    }
 
 		    if (!fullSettingsPayload.scheduledEvents) fullSettingsPayload.scheduledEvents = [];
 		    fullSettingsPayload.scheduledEvents.push(entry);
 
 		    // Reset add-row
-		    hourSel.selectedIndex = 0;
-		    minSel.selectedIndex  = 0;
+		    if (hourSel) hourSel.selectedIndex = 0;
+		    if (minSel)  minSel.selectedIndex  = 0;
 		    speakerSel.value = '';
+		    if (volumeInput) volumeInput.value = '';
 
 		    renderScheduledEvents();
 		    await saveScheduledEvents();
@@ -1327,12 +1529,12 @@ async function saveScheduledEvents(silent = false) {
 		        const spLabel = dev ? `${dev.name} (${timer.speakerIp})` : timer.speakerIp;
 
 		        const enabled = timer.enabled !== false;
+		        const modeLabel = timer.mode === 'once' ? ' · Once' : '';
 		        li.style.opacity = enabled ? '1' : '0.5';
 		        li.innerHTML = `
 		            <input type="checkbox" ${enabled ? 'checked' : ''} onchange="togglePowerOffTimer(${idx}, this.checked)" style="width:18px; height:18px; cursor:pointer; accent-color:var(--accent); flex-shrink:0;">
-		            <span style="color:var(--text); font-weight:bold; white-space:nowrap;">${timer.durationMinutes} min after power-on — ${spLabel}</span>
-		            <span style="flex-grow:1;"></span>
-		            <button onclick="removePowerOffTimer(${idx})" style="background:var(--danger); color:#fff; border:none; padding:5px 10px; border-radius:4px; cursor:pointer;">✕</button>
+		            <span style="color:var(--text); font-weight:bold; flex:1 1 200px; min-width:150px; word-break:break-word;">${timer.durationMinutes} min after power-on — ${spLabel}${modeLabel}</span>
+		            <button onclick="removePowerOffTimer(${idx})" style="background:var(--danger); color:#fff; border:none; padding:5px 10px; border-radius:4px; cursor:pointer; flex-shrink:0;">✕</button>
 		        `;
 		        list.appendChild(li);
 		    });
@@ -1361,16 +1563,21 @@ async function saveScheduledEvents(silent = false) {
 		async function addPowerOffTimer() {
 		    const speakerSel  = document.getElementById('newPowerOffTimerSpeaker');
 		    const durationSel = document.getElementById('newPowerOffTimerDuration');
+		    const onceCheck   = document.getElementById('newPowerOffTimerOnce');
 
 		    const ip = speakerSel?.value;
 		    const durationMinutes = parseInt(durationSel?.value || '60', 10);
 
 		    if (!ip) return alert('Please select a speaker.');
 
+		    const entry = { speakerIp: ip, durationMinutes, enabled: true };
+		    if (onceCheck?.checked) entry.mode = 'once'; // omitted = 'always', today's existing behavior
+
 		    if (!fullSettingsPayload.powerOffTimers) fullSettingsPayload.powerOffTimers = [];
-		    fullSettingsPayload.powerOffTimers.push({ speakerIp: ip, durationMinutes, enabled: true });
+		    fullSettingsPayload.powerOffTimers.push(entry);
 
 		    speakerSel.value = '';
+		    if (onceCheck) onceCheck.checked = false;
 
 		    renderPowerOffTimers();
 		    await savePowerOffTimers();
@@ -1597,6 +1804,12 @@ async function saveScheduledEvents(silent = false) {
 		            const ppChk   = document.getElementById('pref_presetPreview');
 		            if (ppLabel) { ppLabel.style.opacity = ''; ppLabel.style.pointerEvents = ''; }
 		            if (ppChk)   ppChk.disabled = false;
+
+		            const dpLabel = document.getElementById('lbl_descriptivePresets');
+		            const dpChk   = document.getElementById('pref_descriptivePresets');
+		            if (dpLabel) { dpLabel.style.opacity = ''; dpLabel.style.pointerEvents = ''; }
+		            if (dpChk)   dpChk.disabled = false;
+		            handleDescriptivePresetsToggle();
 		        } catch (e) { /* card stays hidden */ }
 
 		    } catch (e) {

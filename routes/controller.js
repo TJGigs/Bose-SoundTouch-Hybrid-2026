@@ -325,6 +325,28 @@ router.post('/key', async(req, res) => {
     }
 });
 
+// On-demand trigger for external callers (e.g. a Home Assistant automation via its
+// built-in rest_command: integration) — plays whichever preset+volume is configured
+// as this speaker's "On Demand" entry on the Scheduled Play page. Deliberately takes
+// no parameters beyond the speaker IP: all configuration stays in the app itself,
+// not scattered into external automation configs. Requires an On Demand entry to
+// already exist for this speaker (set up via the Tools page, behind the admin PIN
+// if one's configured) — this route itself has no auth of its own.
+router.post('/ondemand/:speakerIp', async (req, res) => {
+    const { speakerIp } = req.params;
+    const utils = require('./utils');
+    console.log(`\n[Controller] 🔔 On-Demand trigger received for ${speakerIp}`);
+    const result = await utils.triggerOnDemand(speakerIp);
+    if (result.success) return res.json({ success: true });
+    if (result.reason === 'unknown_speaker') {
+        return res.status(404).json({ error: `Unknown speaker IP '${speakerIp}' — check it matches a speaker on the Speaker Configuration page.` });
+    }
+    if (result.reason === 'not_configured') {
+        return res.status(404).json({ error: `No On Demand entry configured for ${speakerIp} — set one up on the Scheduled Play page.` });
+    }
+    return res.status(500).json({ error: 'Failed to trigger playback — check the SoundTouch Hybrid server logs.' });
+});
+
 router.post('/volume', async(req, res) => {
     try {
         await sendBoseXml(req.body.ip, 'volume', `<volume>${req.body.value}</volume>`);

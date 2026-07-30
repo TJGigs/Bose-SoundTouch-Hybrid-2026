@@ -1,4 +1,4 @@
-# <img src="public/images/hybrid_icon.png" width="30"> Bose SoundTouch Hybrid v4.1
+# <img src="public/images/hybrid_icon.png" width="30"> Bose SoundTouch Hybrid v4.2
 
 **A free, open-source private SoundTouch cloud streaming service and application replacing the deactivated Bose Cloud Service to maintain 100% of the smart speaker functionality of your SoundTouch Speakers and Wireless Link. Physical Presets Included!**
 
@@ -8,14 +8,9 @@ It runs locally on your network (NAS, PC, or Home Assistant add-on) and intercep
 
 ---
 
-## ⚠️ Upgrading to v4.1
+## ⚠️ Upgrading to v4.2
 
 * **Application settings are being reinitialized.** Startup detects the old settings schema and backs up your existing `settings.json` to `settings.json.bak`. Re-configure Scheduled Play/Off, Power Off Timers, and other preferences on first boot.
-
----
-
-## ⚠️ Upgrading to v4.1
-
 * **New `.env` schema.** Startup copies a fresh `.env` template into your directory and backs up your old file. Re-enter your values into the new `.env`.  Don't reuse your old `.env` file 
 * **New [`bose-soundtouch-hybrid.yml`](https://github.com/TJGigs/Bose-SoundTouch-Hybrid/blob/main/bose-soundtouch-hybrid.yml) required.** Download the current version.  Don't reuse an old copy.
 * **Application settings are being reinitialized.** Startup detects the old settings format and backs it up to `settings.json.bak`. Make any changes as desired on first boot — scheduled plays, admin PIN, and other preferences start fresh.
@@ -23,28 +18,29 @@ It runs locally on your network (NAS, PC, or Home Assistant add-on) and intercep
 
 ---
 
-## ✨ V4.1 Enhancements
+## ✨ V4.2 Enhancements
 
-*(Full descriptions of all features below in **Application Key Features**. This is quick "What's new" for existing users.)*
+*(Full descriptions of all features below in **Application Key Features**. This is quick "What's new".)*
 
 * ✅ Extended Physical Presets — 12 total preset slots via double-tap, up from 6
 * ✅ Native Home Assistant Add-on 
 * ✅ Fully automated Bose Cloud injection sequence — no USB stick, no manual firmware step
-* ✅ Automated Speaker Detection — network scan finds every speaker on boot, no manual IP entry (#34)
-* ✅ Multiple speaker groups with selectable master (#106, #102)
+* ✅ Automated Speaker Detection — network scan finds every speaker on boot, no manual IP entry
+* ✅ Multiple speaker groups with selectable master 
 * ✅ ST10 stereo pairing
 * ✅ Preset Hover Preview — see what's assigned to a preset before pressing it
+* ✅ Descriptive Presets — an always-visible alternative to Hover Preview: preset buttons show their assigned name directly. 
 * ✅ Scheduled Play and Power Off at set times, plus a Power Off Timer to auto-off after playing, and scheduled maintenance (nightly audits/restarts)
-* ✅ Optional Admin PIN lock for Tools/Admin pages (#107)
+* ✅ Optional Admin PIN lock for Tools/Admin pages
 * ✅ Configurable search tabs sourced from your Music Assistant providers
 * ✅ Podcasts & audiobooks in search and library
 * ✅ Dynamic real-time lost-preset detection & auto-heal
-* ✅ Preset debugging watchdog (Discussion #16)
-* ✅ Automatic MASS player-config enforcement on boot, plus a manual trigger on the Tools page (#125)
+* ✅ Preset debugging watchdog 
+* ✅ Automatic MASS player-config enforcement on boot, plus a manual trigger on the Tools page 
 * ✅ MASS recent-items cache warming for instant Library "Recent" loads
-* ✅ Smarter MASS integration: cached auth token reuse + three-path restart cascade — native HA Supervisor, Docker socket, or long-lived HA token for split installs (#121, #128)
-* ✅ Physical remote-control HiJacks re-enables Bose-deactivated pause/play, next/prev buttons (#120, #57, #70, #63)
-* ✅ Persistent, disk-backed auto-resume presets — survive container rebuilds, not just app restarts (#112)
+* ✅ Smarter MASS integration: cached auth token reuse + three-path restart cascade — native HA Supervisor, Docker socket, or long-lived HA token for split installs
+* ✅ Physical remote-control HiJacks re-enables Bose-deactivated pause/play, next/prev buttons 
+* ✅ Persistent, disk-backed auto-resume presets — survive container rebuilds, not just app restarts 
 
 <details>
 <summary><strong>✨ V3 Enhancements (historical — click to expand)</strong></summary>
@@ -89,11 +85,15 @@ It runs locally on your network (NAS, PC, or Home Assistant add-on) and intercep
 
 * **Preset Hover Preview:** On desktop, hover over any preset button on the Remote Control page to see a quick preview — artwork, name, and source — of what it's assigned to before pressing it. Toggleable from the Tools page.
 
+* **Descriptive Presets:** An always-visible alternative to Preset Hover Preview — each preset button shows its assigned name directly on the Remote Control page.
+
 * **Real-Time Preset Self-Healing** — if a speaker's presets get wiped (a known legacy-firmware degraded WiFi failure mode), they're detected and re-injected automatically, no restart required.
 
 ### 🛠️ Extended Admin & Automation Tools
 
-* **Scheduled Automation:** Set speakers or groups to power on and start playback at a scheduled time, schedule them to power off at a set time, or arm a Power Off Timer to automatically power off a set number of minutes after they turn on — plus optionally run nightly speaker audits and/or scheduled app restarts — with or without a full reboot — all hands-off.
+* **Scheduled Automation:** Set speakers to power on and start playback at a scheduled time — every day, or weekdays and weekends separately, with an optional volume override — schedule them to power off at a set time, or arm a Power Off Timer (optionally one-time, disabling itself after it fires) to automatically power off a set number of minutes after they turn on — plus optionally run nightly speaker audits and/or scheduled app restarts — with or without a full reboot.
+
+* **On Demand External Trigger:** Configure a speaker's preset (and optional volume) as an "On Demand" entry on the Scheduled Play page, then trigger it from outside the app — e.g. a Home Assistant automation — via a simple webhook, with no separate integration to install. See the Technical Documentation for setup details.
 
 * **Optional Admin PIN Lock:** Restrict the Tools and Admin pages behind a PIN — useful on a shared household network where you don't want everyone able to change system settings.
 
@@ -223,7 +223,7 @@ Install Music Assistant (MASS): ***version 2.9.9 or later is required***
 ### Common to All Install Methods
 
 * **Redirect to Local Cloud:** Happens automatically on first boot — no USB stick, no manual firmware step. Confirmed in the console/Pre-Flight log.
-* **Speaker Discovery:** Runs automatically on first boot and re-syncs on every subsequent boot — you never manually look up, enter, or edit a speaker list. Discovery scans the same subnet as your Music Assistant server, so your SoundTouch speakers need to be on that same subnet to be found.
+* **Speaker Discovery:** Runs automatically on first boot and re-syncs on every subsequent boot — you never manually look up, enter, or edit a speaker list. Discovery scans the same subnet as your Music Assistant server by default. If your speakers are on a different subnet/VLAN (e.g. Home Assistant routed separately from your speakers), set **Speaker Scan Subnet** below to override it.
 * *A static IP address for each speaker is recommended, however, dynamic speaker IP addresses are supported.*
 
 ### Standalone Docker (NAS / PC)
@@ -245,6 +245,7 @@ Install Music Assistant (MASS): ***version 2.9.9 or later is required***
 
 4. **Configure `.env`:** Open the generated `.env` and fill in:
    * **APP_IP** — this server's own LAN IP. **MASS_IP / MASS_PORT** — your Music Assistant server's IP (port defaults to 8095).
+   * **SCAN_SUBNET** (optional) — leave blank for almost every setup. Only set this if your speakers are on a different subnet/VLAN than MASS_IP — the discovery scan can't find them automatically in that case. Enter the speakers' own subnet as a CIDR block, e.g. `192.168.1.0/24`.
    * **Authentication** — either **MASS_TOKEN** (an auth token generated from Music Assistant's own Settings page), or **MASS_USERNAME** + **MASS_PASSWORD**. Provide one method, not both.
    * **MASS_CONTAINER_NAME** — required so SoundTouch Hybrid can restart Music Assistant automatically when needed:
      - Standalone MASS Docker container: the container's actual name (commonly `music-assistant-server`, or whatever you named it).
@@ -268,6 +269,7 @@ Install Music Assistant (MASS): ***version 2.9.9 or later is required***
    * **Music Assistant Username / Password** Your MASS Username and Password. Both are required if not using a Music Assistant Auth Token.
    * **Music Assistant Auth Token** An alternative to the Username / Password. Both methods are fully supported; provide one or the other, not both.
    * **App IP / Music Assistant IP** — leave both blank, The add-on auto-detects the host address. Only set **Music Assistant IP** if MASS runs on a separate machine or VM.
+   * **Speaker Scan Subnet** (optional) — leave blank for almost every setup; only needed if your speakers are on a different subnet/VLAN than Home Assistant. Enter the speakers' own subnet as a CIDR block, e.g. `192.168.1.0/24`.
    * **Assigned App Port** — Home Assistant automatically assigns this add-on a free port; it's shown here read-only, for reference only. Any value typed into this field is ignored. There's nothing to configure and nothing that can conflict with another port on your Home Assistant host.
 4. Start the add-on. On first boot it scans your network and finds your SoundTouch speakers automatically.
 5. Open the add-on's panel from the Home Assistant sidebar and use the **Open Web UI** button, or go directly to `http://<your-HA-host-IP>:<port>/control.html`, using the port shown in **Assigned App Port**.

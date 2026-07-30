@@ -8,7 +8,11 @@ const xml2js = require('xml2js');
 const utils = require('./utils');
 const mass = require('./mass');
 
-const IP = process.env.APP_IP;
+// APP_IP is read fresh via utils.getResolvedAppIp() at each point of use below
+// (not captured as a module-level const) — this module is require()'d before
+// boot's hostname resolution runs, so a value captured here at load time would
+// always be the raw, possibly-hostname config. See
+// Docs/design_subnet_and_hostname_resolution.md.
 const PORT = process.env.APP_PORT;
 const LOG_DIR = path.resolve(process.cwd(), "config", "logs");
 const identityCache = {};
@@ -431,7 +435,7 @@ router.get('/bmx/registry/v1/services', (req, res) => {
         "bmx_services": [
             {
                 "id": { "name": "LOCAL_INTERNET_RADIO", "value": 11 },
-                "baseUrl": `http://${IP}:${PORT}/radio`,
+                "baseUrl": `http://${utils.getResolvedAppIp()}:${PORT}/radio`,
                 "_links": { "bmx_token": { "href": "/token" }, "self": { "href": "/" } },
                 "askAdapter": false,
                 "authenticationModel": { "anonymousAccount": { "autoCreate": true, "enabled": true } },

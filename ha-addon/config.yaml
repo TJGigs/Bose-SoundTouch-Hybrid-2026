@@ -1,5 +1,5 @@
 name: "Bose SoundTouch Hybrid"
-version: "v4.1"
+version: "v4.2"
 slug: "bose_soundtouch_hybrid"
 description: "An open-source private SoundTouch cloud streaming service and application replacing the deactivated Bose Cloud Service to maintain 100% of the smart speaker functionality of your SoundTouch Speakers and Wireless Link. Physical Presets Included!"
 url: "https://github.com/TJGigs/Bose-SoundTouch-Hybrid"
@@ -64,6 +64,10 @@ options:
   app_ip: ""
   mass_ip: ""
   mass_port: 8095
+  # Blank = auto (current MASS_IP-derived /24 behavior). Only needed when
+  # speakers live on a different subnet/VLAN than this add-on can infer —
+  # see #143 and Docs/design_subnet_and_hostname_resolution.md.
+  scan_subnet: ""
   # Overwritten unconditionally by run.sh on every boot with whatever
   # Supervisor actually assigned — never read as user input. See this
   # field's description in translations/en.yaml and the ingress_port
@@ -77,6 +81,11 @@ schema:
   app_ip: "str?"
   mass_ip: "str?"
   mass_port: port
+  # "str?" like app_ip/mass_ip, not a stricter CIDR-format type — same reason:
+  # a strict schema would reject the blank default and add validation
+  # overhead for no real benefit, since discoverSpeakers() already validates
+  # the value at scan time and logs clearly if it's malformed.
+  scan_subnet: "str?"
   # int(0,65535), not the "port" type — "port" enforces a minimum of 1, but the
   # placeholder value before this add-on's first boot (before Supervisor has
   # ever assigned a real port) is 0, which must still pass validation so

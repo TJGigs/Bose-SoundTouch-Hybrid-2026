@@ -177,7 +177,7 @@
 
 <div id="modal" class="modal">
   <div class="modal-content">
-    <h3 style="margin-top:0;">Save to Library</h3>
+    <h3 id="modal-title" style="margin-top:0;">Save to Library</h3>
     
     <input type="hidden" id="edit-uuid">
     <input type="hidden" id="edit-uri">
@@ -191,20 +191,26 @@
       <input type="text" id="edit-name">
     </div>
     
-    <div class="form-group">
-      <label>Assign to Slot</label>
-      <select id="edit-slot" onchange="toggleSpeakerDropdown(this.value)">
-          <option value="0">None (Favorite Only / Unassign)</option>
-          <option value="1">Preset 1</option><option value="2">Preset 2</option><option value="3">Preset 3</option>
-          <option value="4">Preset 4</option><option value="5">Preset 5</option><option value="6">Preset 6</option>
-      </select>
+    <div class="check-row" id="row-assign-preset" style="margin-bottom:10px;">
+        <input type="checkbox" id="edit-assign-preset" onchange="togglePresetAssignFields(this.checked)">
+        <label id="label-assign-preset" style="display:inline; margin-left:8px;">Assign to a Preset Button</label>
     </div>
-    
-    <div class="form-group" id="group-edit-speaker">
-      <label id="label-edit-speaker">Target Speaker</label>
-      <select id="edit-speaker" class="mini-select" style="width: 100%;">
-          <option value="">Global (All Speakers)</option>
-      </select>
+
+    <div id="preset-assign-fields" style="display:none;">
+      <div class="form-group" id="group-edit-speaker">
+        <label id="label-edit-speaker">Target Speaker</label>
+        <select id="edit-speaker" class="mini-select" style="width: 100%;" onchange="handleTargetSpeakerChange()">
+            <option value="">Global (All Speakers)</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label>Assign to Slot</label>
+        <select id="edit-slot">
+            <option value="1">Preset 1</option><option value="2">Preset 2</option><option value="3">Preset 3</option>
+            <option value="4">Preset 4</option><option value="5">Preset 5</option><option value="6">Preset 6</option>
+        </select>
+      </div>
     </div>
     
     <label style="margin-top:15px; display:block; margin-bottom:5px;">Playback Options</label>
@@ -250,6 +256,7 @@
   let npInterval = null;
   let currentSearchOrder = []; // populated from settings on load
   let extendedPresetsEnabled = false;
+  let libraryItems = []; // last-fetched library, kept for the edit modal's slot-assigned/empty labels
 
   // --- THEME MANAGEMENT ---
   // Applies the theme immediately to prevent flash of unstyled content
@@ -285,14 +292,56 @@
       if (!sel) return;
       // Remove any previously injected extended options
       Array.from(sel.options).forEach(o => { if (parseInt(o.value) > 6) sel.removeChild(o); });
-      if (!extendedPresetsEnabled) return;
-      const ext = [[11,'P1'],[22,'P2'],[33,'P3'],[44,'P4'],[55,'P5'],[66,'P6']];
-      ext.forEach(([val, btn]) => {
-          const o = document.createElement('option');
-          o.value = val;
-          o.textContent = `Preset ${val} (double-tap ${btn})`;
-          sel.appendChild(o);
+      if (extendedPresetsEnabled) {
+          [11, 22, 33, 44, 55, 66].forEach(val => {
+              const o = document.createElement('option');
+              o.value = val;
+              sel.appendChild(o);
+          });
+      }
+      refreshSlotLabels();
+  }
+
+  // Labels every real preset option (value > 0) with a bit of the assigned item's
+  // name, or leaves it plain (just the number) if the slot is empty — same "N ·
+  // Name" format as the descriptive preset buttons on control.html, for consistency
+  // between the two surfaces. Assignment scope depends on whichever speaker is
+  // currently selected in Target Speaker (global vs a specific speaker are different
+  // slots), so this re-runs on that dropdown's onchange too, not just once when the
+  // modal opens. Truncated short to keep the dropdown's rendered width stable — the
+  // closed <select> always clips to its own CSS width regardless of text length, but
+  // a long option can still widen the open popup in some browsers.
+  function refreshSlotLabels() {
+      const sel = document.getElementById('edit-slot');
+      const speakerSel = document.getElementById('edit-speaker');
+      if (!sel) return;
+      const scope = speakerSel ? speakerSel.value : '';
+      const maxChars = 30;
+      Array.from(sel.options).forEach(o => {
+          const val = parseInt(o.value);
+          if (!val) return; // skip "None (Favorite Only / Unassign)"
+          const item = libraryItems.find(i => i.slot === val && (i.speakerIp || '') === scope);
+          if (!item) {
+              o.textContent = `${val}`;
+              return;
+          }
+          const name = item.name || '';
+          const short = name.length > maxChars ? name.slice(0, maxChars) + '…' : name;
+          o.textContent = `${val} · ${short}`;
       });
+  }
+
+  // Fires whenever Target Speaker changes. Refreshes the slot labels for the new
+  // scope, then repositions Assign to Slot to match: if this same content (by uri)
+  // is already on a preset for the newly selected speaker, jump straight to that
+  // slot; otherwise reset to Preset 1 rather than leaving whatever slot number was
+  // showing for the *previous* speaker, which wouldn't mean anything here.
+  function handleTargetSpeakerChange() {
+      refreshSlotLabels();
+      const uri = document.getElementById('edit-uri').value;
+      const scope = document.getElementById('edit-speaker').value;
+      const match = libraryItems.find(i => i.uri === uri && i.slot > 0 && (i.speakerIp || '') === scope);
+      document.getElementById('edit-slot').value = match ? match.slot : 1;
   }
 
   // --- INITIALIZATION ---
@@ -934,6 +983,8 @@
       const library = await api('api/manager/library');
       if (!Array.isArray(library))
           return;
+      libraryItems = library;
+      refreshSlotLabels();
 
       // Custom sort priority: Playlist > Artist > Album > Track
       const typePriority = {
@@ -1038,22 +1089,15 @@
   // --- MODAL & SAVING ---
 
   // Forces a strong visual gray-out of the Target Speaker dropdown
-  function toggleSpeakerDropdown(slotValue) {
-      const speakerSelect = document.getElementById('edit-speaker');
-      const speakerLabel = document.getElementById('label-edit-speaker');
-      const isFavorite = (parseInt(slotValue) === 0);
-
-      speakerSelect.disabled = isFavorite;
-
-      if (isFavorite) {
-          speakerSelect.style.opacity = '0.4';
-          speakerSelect.style.cursor = 'not-allowed';
-          speakerLabel.style.opacity = '0.4';
-      } else {
-          speakerSelect.style.opacity = '1';
-          speakerSelect.style.cursor = 'pointer';
-          speakerLabel.style.opacity = '1';
-      }
+  // Shows/hides Target Speaker + Assign to Slot together — both are irrelevant for
+  // a favorite-only save, so they're gated by this single checkbox rather than by
+  // the slot dropdown's value (that used to make Target Speaker unusable until a
+  // real slot was already picked, forcing slot to be chosen before its own label
+  // context — speaker — was set).
+  function togglePresetAssignFields(checked) {
+      const fields = document.getElementById('preset-assign-fields');
+      if (fields) fields.style.display = checked ? 'block' : 'none';
+      if (checked) refreshSlotLabels();
   }
 
   function openModal(item) {
@@ -1066,6 +1110,18 @@
       saveBtn.textContent = 'Save';
       saveBtn.classList.remove('btn-success');
 
+      // A brand-new Search/Recents/Custom URL item has no uuid yet — only an item
+      // already in the library (Favorite or Preset) does, and "Save" reads wrong for
+      // those since nothing new is being created. Split further by slot so editing a
+      // Preset doesn't read the same as editing a Favorite — they're different edits.
+      {
+          const isExisting = !!item.uuid;
+          const isPreset = isExisting && (parseInt(item.slot) || 0) > 0;
+          document.getElementById('modal-title').textContent = !isExisting
+              ? 'Save to Library'
+              : (isPreset ? 'Update Preset' : 'Update Favorite');
+      }
+
       // Populate hidden fields
       ['uuid', 'uri', 'image', 'type', 'subtitle', 'provider'].forEach(field => {
           document.getElementById('edit-' + field).value = item[field] || (field === 'uuid' ? '' : item.type);
@@ -1073,11 +1129,23 @@
       document.getElementById('edit-name').value = item.name;
 
       const slotVal = parseInt(item.slot) || 0;
-      document.getElementById('edit-slot').value = slotVal;
       document.getElementById('edit-speaker').value = item.speakerIp || '';
+      refreshSlotLabels(); // labels reflect this item's speaker scope, not whatever was last shown
+      document.getElementById('edit-slot').value = slotVal > 0 ? slotVal : 1; // always reset — otherwise a fresh item inherits whatever slot the modal last showed
 
-      // Run the visual gray-out logic immediately upon opening
-      toggleSpeakerDropdown(slotVal);
+      // Checkbox defaults to the item's own current state — a brand-new Search/Recents
+      // item never carries a slot, so this naturally lands on favorite-only for those,
+      // and on "assigned" (pre-filled to its real slot/speaker) for an existing preset.
+      const assignChk = document.getElementById('edit-assign-preset');
+      assignChk.checked = slotVal > 0;
+      togglePresetAssignFields(assignChk.checked);
+
+      // Spells out what unchecking actually does — saving with this off clears the
+      // preset pointer but leaves the item's Favorite entry untouched (routes/manager.js
+      // RULE 1 always keeps one around), so "remove" here never loses the content.
+      document.getElementById('label-assign-preset').textContent = slotVal > 0
+          ? 'Assigned to Preset — uncheck to remove'
+          : 'Assign to a Preset';
 
       // Handle Settings (Shuffle/Repeat)
       const uri = (item.uri || "").toLowerCase();
@@ -1114,8 +1182,8 @@
           image: document.getElementById('edit-image').value,
           type: document.getElementById('edit-type').value,
           provider: document.getElementById('edit-provider').value,
-          slot: document.getElementById('edit-slot').value,
-          speakerIp: document.getElementById('edit-speaker').value,
+          slot: document.getElementById('edit-assign-preset').checked ? document.getElementById('edit-slot').value : '0',
+          speakerIp: document.getElementById('edit-assign-preset').checked ? document.getElementById('edit-speaker').value : '',
           settings: {
               shuffle: document.getElementById('edit-shuffle').checked,
               repeat: document.getElementById('edit-repeat').value
@@ -1137,30 +1205,28 @@
   }
 
   // Updated deleteItem to support optional refresh of history, and smart confirmation messages
-  async function deleteItem(uuid, isHistory = false) {
-      // Look up the item to see if it's a Favorite or a Preset
-      let isFavorite = false;
-      try {
-          const library = await api('api/manager/library');
-          const item = library.find(i => i.uuid === uuid);
-          if (item && item.slot === 0)
-              isFavorite = true;
-      } catch (e) {}
+  // Deleting a Favorite (slot 0) cascades to every preset sharing its URI (routes/manager.js
+  // RULE 4) — a real, permanent delete. Deleting a Preset only drops that one pointer
+  // (RULE 3); the Favorite it came from is untouched. The confirm text below reflects
+  // that real difference, sourced from the already-loaded libraryItems (no extra fetch).
+  function deleteItem(uuid, isHistory = false) {
+      let warningText = "Delete this item?";
+      if (!isHistory) {
+          const item = libraryItems.find(i => i.uuid === uuid);
+          const isFavorite = item ? item.slot === 0 : false;
+          warningText = isFavorite
+              ? "🗑️ permanently DELETE this item from your Favorites?"
+              : "✕ CLEAR this item from the preset slot? (It will stay in your Favorites)";
+      }
 
-      // Change the warning text based on the item type!
-      const warningText = isFavorite
-           ? "🗑️ permanently DELETE this item from your Favorites?"
-           : "✕ CLEAR this item from the preset slot? (It will stay in your Favorites)";
+      if (!confirm(`Are you sure you want to ${warningText}`)) return;
 
-      if (confirm(`Are you sure you want to ${warningText}`)) {
-          await api(`api/manager/delete/${uuid}`, {
-              method: 'DELETE'
-          });
+      api(`api/manager/delete/${uuid}`, { method: 'DELETE' }).then(() => {
           if (isHistory)
               loadCustomHistory();
           else
               loadLibrary();
-      }
+      });
   }
 
   // --- SPEAKER LIST MODAL (Secondary) ---
@@ -1295,19 +1361,6 @@
       });
       if (btn) { btn.textContent = '✅ Saved!'; btn.classList.add('btn-success'); }
       setTimeout(() => loadCustomHistory(), 1000); // brief pause so user sees the confirmation
-  }
-
-  // Updated deleteItem to support optional refresh of history
-  async function deleteItem(uuid, isHistory = false) {
-      if (confirm("Delete this item?")) {
-          await api(`api/manager/delete/${uuid}`, {
-              method: 'DELETE'
-          });
-          if (isHistory)
-              loadCustomHistory();
-          else
-              loadLibrary();
-      }
   }
 </script>
 </body>

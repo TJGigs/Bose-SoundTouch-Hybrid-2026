@@ -39,7 +39,7 @@ Install Music Assistant (MASS): ***version 2.9.9 or later is required***
 ## <img src="public/images/hybrid_icon.png" width="18"> Installing SoundTouch Hybrid
 
 * **Redirect to Local Cloud:** Happens automatically on first boot — no USB stick, no manual firmware step. Confirmed in the console/Pre-Flight log.
-* **Speaker Discovery:** Runs automatically on first boot and re-syncs on every subsequent boot — you never manually look up, enter, or edit a speaker list. Discovery scans the same subnet as your Music Assistant server, so your SoundTouch speakers need to be on that same subnet to be found.
+* **Speaker Discovery:** Runs automatically on first boot and re-syncs on every subsequent boot — you never manually look up, enter, or edit a speaker list. Discovery scans the same subnet as your Music Assistant server by default. If your speakers are on a different subnet/VLAN (e.g. Home Assistant routed separately from your speakers), set **Speaker Scan Subnet** below to override it.
 * *A static IP address for each speaker is recommended, however, dynamic speaker IP addresses are supported.*
 
 ## Installing This Add-on
@@ -53,10 +53,30 @@ Install Music Assistant (MASS): ***version 2.9.9 or later is required***
    * **Music Assistant Username / Password** Your MASS Username and Password. Both are required if not using a Music Assistant Auth Token.
    * **Music Assistant Auth Token** An alternative to the Username / Password. Both methods are fully supported; provide one or the other, not both.
    * **App IP / Music Assistant IP** — leave both blank, The add-on auto-detects the host address. Only set **Music Assistant IP** if MASS runs on a separate machine or VM.
+   * **Speaker Scan Subnet** (optional) — leave blank for almost every setup; only needed if your speakers are on a different subnet/VLAN than Home Assistant. Enter the speakers' own subnet as a CIDR block, e.g. `192.168.1.0/24`.
    * **Assigned App Port** — Home Assistant automatically assigns this add-on a free port; it's shown here read-only, for reference only. Any value typed into this field is ignored. There's nothing to configure and nothing that can conflict with another port on your Home Assistant host.
 4. Start the add-on. On first boot it scans your network and finds your SoundTouch speakers automatically.
 5. Open the add-on's panel from the Home Assistant sidebar and use the **Open Web UI** button, or go directly to `http://<your-HA-host-IP>:<port>/control.html`, using the port shown in **Assigned App Port**.
 6. **Install the Web App:** On your phone, open `http://<YOUR_SERVER_IP>:<port>/control.html` and tap **"Add to Home Screen"** to add the SoundTouch Hybrid icon and link to your home screen.
+
+---
+
+## On-Demand External Trigger (Optional)
+
+Trigger a speaker's preset from outside the app — a Home Assistant automation, a motion sensor, etc without installing any separate integration.
+
+1. **Create the On-Demand entry:** in SoundTouch Hybrid, go to **Tools → Scheduled Play / Off**. Add a new schedule, set **Trigger** to **On Demand**, then pick the speaker, preset, and (optionally) a volume. A speaker can have one On-Demand entry.
+2. **Add a `rest_command:` in Home Assistant:** edit `configuration.yaml` and add one entry per speaker you want to trigger:
+   ```yaml
+   rest_command:
+     soundtouch_hybrid_living_room:
+       url: "http://<your-HA-host-IP>:<port>/api/ondemand/<SPEAKER_IP>"
+       method: POST
+   ```
+   Use the same port shown in **Assigned App Port**, and the speaker's IP from the Speaker Configuration page.
+3. **Call it from any automation:** use `rest_command.soundtouch_hybrid_living_room` as the action — a motion sensor, a time trigger, a scene, anything Home Assistant supports.
+
+The webhook takes no parameters beyond the speaker's IP — it always plays whatever preset/volume you configured in step 1, so all the actual configuration stays in one place. If the URL or speaker IP is wrong, or nothing's configured yet, the call returns specific text explaining the error. Check the response in Home Assistant's automation trace if a call doesn't seem to work.
 
 ---
 

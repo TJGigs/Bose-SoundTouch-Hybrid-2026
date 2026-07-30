@@ -514,16 +514,37 @@
           const dis = (val) => val ? 'disabled' : ''; // Utility for HTML attributes
           const cls = (val) => val ? 'btn-disabled' : ''; // Utility for CSS classes
 
-          const extPresetsHtml = (() => {
-              if (!globalSettings.doubleTapPresets) return '';
-              const btns = [11, 22, 33, 44, 55, 66].map(n => {
+          // Resting position for .slider-thumb-handle. A native range thumb's center
+          // sits at thumbRadius + fraction*(trackWidth - thumbDiameter), not a naive
+          // fraction of the full container width — this calc() matches that exactly
+          // (thumbWidth is 20px, see input[type=range]::-webkit-slider-thumb in
+          // style.css), so the touch hitbox stays centered on the real thumb at every
+          // value instead of just drifting within its oversized tolerance.
+          const thumbLeft = (fraction) => `calc(10px + (100% - 20px) * ${fraction})`;
+
+          // Renders a set of preset buttons either as plain number buttons (default)
+          // or, when descriptivePresets is on, as a single wide button per preset
+          // (number + name combined) spanning the same 3-column width so the row
+          // height never changes.
+          const renderPresetsRow = (nums, rowExtraClass, btnExtraClass) => {
+              const cells = nums.map(n => {
                   const isActive = (ui.presetNum === n);
                   const pClick = `onmousedown="uiPreset('${d.ip}', ${n})"`;
-                  const hover  = `onmouseenter="showPresetPreview(this,'${d.ip}',${n})" onmouseleave="hidePresetPreview()"`;
-                  return `<button class="btn-preset btn-preset-ext ${isActive ? 'active' : ''} ${cls(ui.presetDisabled)}" ${dis(ui.presetDisabled)} ${pClick} ${hover}>${n}</button>`;
+                  if (globalSettings.descriptivePresets) {
+                      const item = presetMap[d.ip + '_' + n] || presetMap['_' + n];
+                      const label = item && item.name ? `${n} · ${item.name}` : `${n}`;
+                      return `<button class="btn-preset btn-preset-wide ${isActive ? 'active' : ''} ${cls(ui.presetDisabled)}" ${dis(ui.presetDisabled)} ${pClick} title="${label}"><span class="preset-label">${label}</span></button>`;
+                  }
+                  const hover = `onmouseenter="showPresetPreview(this,'${d.ip}',${n})" onmouseleave="hidePresetPreview()"`;
+                  return `<button class="btn-preset ${btnExtraClass} ${isActive ? 'active' : ''} ${cls(ui.presetDisabled)}" ${dis(ui.presetDisabled)} ${pClick} ${hover}>${n}</button>`;
               }).join('');
-              return `<div class="presets-row extended-presets-row">${btns}</div>`;
-          })();
+              return `<div class="presets-row ${rowExtraClass}">${cells}</div>`;
+          };
+
+          const basePresetsHtml = renderPresetsRow([1, 2, 3, 4, 5, 6], '', '');
+          const extPresetsHtml = globalSettings.doubleTapPresets
+              ? renderPresetsRow([11, 22, 33, 44, 55, 66], 'extended-presets-row', 'btn-preset-ext')
+              : '';
 
           return `
         <div class="card" id="card-${d.ip}">
@@ -541,28 +562,23 @@
             ${isGroupMaster ? `<div class="master-badge">GROUP MASTER</div>` : ''}
             ${showSync ? `<button class="btn join ${ui.joinClass} ${cls(ui.joinDisabled)}" ${clickSync} ${dis(ui.joinDisabled)}>${syncText}</button>` : ''}
           </div>
-          <div class="presets-row">
-            ${[1, 2, 3, 4, 5, 6].map(n => {
-              const isActive = (ui.presetNum === n);
-              const pClick = `onmousedown="uiPreset('${d.ip}', ${n})"`;
-              const hover  = `onmouseenter="showPresetPreview(this,'${d.ip}',${n})" onmouseleave="hidePresetPreview()"`;
-              return `<button class="btn-preset ${isActive ? 'active' : ''} ${cls(ui.presetDisabled)}" ${dis(ui.presetDisabled)} ${pClick} ${hover}>${n}</button>`;
-          }).join('')}
-          </div>
+          ${basePresetsHtml}
           ${extPresetsHtml}
 
           <div class="slider-container ${cls(ui.volDisabled)}" style="position:relative;">
             <span style="font-size:0.8em; color:var(--text-secondary)">VOL</span>
             <span id="bubble-${d.ip}" class="vol-bubble"></span>
 
-            <input type="range" id="vol-${d.ip}" min="0" max="100" value="${d.volume}" ${dis(ui.volDisabled)}
-                   oninput="handleVolumeInput('${d.ip}', this.value, this)" 
+            <input type="range" class="slider-guarded" id="vol-${d.ip}" min="0" max="100" value="${d.volume}" ${dis(ui.volDisabled)}
+                   oninput="handleVolumeInput('${d.ip}', this.value, this)"
                    onchange="handleVolumeSet('${d.ip}', this.value)"
                    onmousedown="showBubble('${d.ip}')"
-                   onmouseup="hideBubble('${d.ip}')"
-                   ontouchstart="showBubble('${d.ip}')"
-                   ontouchend="hideBubble('${d.ip}')">
-                   
+                   onmouseup="hideBubble('${d.ip}')">
+            <div class="slider-thumb-handle ${cls(ui.volDisabled)}" style="left:${thumbLeft(d.volume / 100)};"
+                 onpointerdown="startThumbDrag(event, this, 'vol-${d.ip}', () => showBubble('${d.ip}'))"
+                 onpointermove="moveThumbDrag(event, this, 'vol-${d.ip}')"
+                 onpointerup="endThumbDrag(event, this, 'vol-${d.ip}', () => hideBubble('${d.ip}'))"></div>
+
             <span id="vol-txt-${d.ip}" style="font-size:0.8em; color:var(--text-secondary); width:25px; text-align:right;">${d.volume}</span>
           </div>
 
@@ -573,14 +589,16 @@
                
                <span id="bubble-grp-${d.ip}" class="vol-bubble"></span>
 
-               <input type="range" id="grp-${d.ip}" min="0" max="100" value="${groupMaxVolume}" ${dis(ui.volDisabled)}
+               <input type="range" class="slider-guarded" id="grp-${d.ip}" min="0" max="100" value="${groupMaxVolume}" ${dis(ui.volDisabled)}
                       oninput="handleGroupVolumeInput('${d.ip}', this.value, this)"
                       onchange="handleGroupVolumeSet('${d.ip}', this.value)"
                       onmousedown="showGroupBubble('${d.ip}')"
-                      onmouseup="hideGroupBubble('${d.ip}')"
-                      ontouchstart="showGroupBubble('${d.ip}')"
-                      ontouchend="hideGroupBubble('${d.ip}')">
-                      
+                      onmouseup="hideGroupBubble('${d.ip}')">
+               <div class="slider-thumb-handle ${cls(ui.volDisabled)}" style="left:${thumbLeft(groupMaxVolume / 100)};"
+                    onpointerdown="startThumbDrag(event, this, 'grp-${d.ip}', () => showGroupBubble('${d.ip}'))"
+                    onpointermove="moveThumbDrag(event, this, 'grp-${d.ip}')"
+                    onpointerup="endThumbDrag(event, this, 'grp-${d.ip}', () => hideGroupBubble('${d.ip}'))"></div>
+
                <span id="grp-txt-${d.ip}" style="font-size:0.8em; color:var(--group); width:25px; text-align:right; font-weight:bold;">${groupMaxVolume}</span>
             </div>` : ''}
 			${d.stereoRole === 'LEFT' ? `
@@ -590,14 +608,16 @@
                
                <span id="bubble-bal-${d.ip}" class="vol-bubble"></span>
 
-               <input type="range" id="bal-${d.ip}" min="-50" max="50" value="0" ${dis(ui.volDisabled)}
+               <input type="range" class="slider-guarded" id="bal-${d.ip}" min="-50" max="50" value="0" ${dis(ui.volDisabled)}
                       oninput="handleBalanceInput('${d.ip}', this.value, this)"
                       onchange="handleBalanceSet('${d.ip}', this.value)"
                       onmousedown="showBalBubble('${d.ip}')"
-                      onmouseup="hideBalBubble('${d.ip}')"
-                      ontouchstart="showBalBubble('${d.ip}')"
-                      ontouchend="hideBalBubble('${d.ip}')">
-                      
+                      onmouseup="hideBalBubble('${d.ip}')">
+               <div class="slider-thumb-handle ${cls(ui.volDisabled)}" style="left:${thumbLeft(0.5)};"
+                    onpointerdown="startThumbDrag(event, this, 'bal-${d.ip}', () => showBalBubble('${d.ip}'))"
+                    onpointermove="moveThumbDrag(event, this, 'bal-${d.ip}')"
+                    onpointerup="endThumbDrag(event, this, 'bal-${d.ip}', () => hideBalBubble('${d.ip}'))"></div>
+
                <span id="bal-txt-${d.ip}" style="font-size:0.8em; color:var(--text-secondary); width:30px; text-align:right;">C</span>
             </div>` : ''}
         </div>`;
@@ -779,7 +799,7 @@
       const el = document.getElementById(`vol-${ip}`);
       if (bubble && el) {
           const percent = (el.value - el.min) / (el.max - el.min);
-          const thumbWidth = 15;
+          const thumbWidth = 20;
           const trackWidth = el.offsetWidth - thumbWidth;
           const newLeft = el.offsetLeft + (percent * trackWidth) + (thumbWidth / 2);
 
@@ -793,6 +813,68 @@
       const bubble = document.getElementById(`bubble-${ip}`);
       if (bubble)
           bubble.classList.remove('visible');
+  }
+
+  // Native <input type="range"> lets a touch ANYWHERE on the track jump the slider to
+  // that position — fine on desktop (mouse clicks never fire touch events), but on a
+  // touchscreen it means a finger grazing the track while scrolling can slam volume to
+  // an unintended level.
+  //
+  // input.slider-guarded gets `pointer-events: none` for touch (`@media (pointer:
+  // coarse)` in style.css), removing it from touch hit-testing entirely. The only
+  // touch target is .slider-thumb-handle, a small dedicated hitbox positioned over the
+  // thumb (see style.css) — a tap elsewhere on the track never lands on it, so no
+  // off-thumb hit-testing is needed. Dragging uses Pointer Events (not Touch Events)
+  // specifically for setPointerCapture: once captured, the handle keeps receiving
+  // pointermove/pointerup for this gesture regardless of where the finger drifts,
+  // without re-hit-testing anything.
+
+  // Computes a slider value from a pointer's live X position and applies it by
+  // setting el.value and dispatching a real 'input' event — this replays through the
+  // exact same oninput="..." handler (handleVolumeInput/handleGroupVolumeInput/
+  // handleBalanceInput) a native drag would have triggered, so none of that logic
+  // (network throttling, delta math, bubble text/position) needs to be duplicated
+  // here. Also repositions the handle to track the finger in real time — its resting
+  // position is a CSS % baked into the render template (see control.html's card
+  // template), only accurate again once the next value-driven re-render happens.
+  function updateSliderFromPointer(e, el, handleEl) {
+      if (!el) return;
+      const rect = el.getBoundingClientRect();
+      let percent = (e.clientX - rect.left) / rect.width;
+      percent = Math.max(0, Math.min(1, percent));
+      const min = parseInt(el.min, 10);
+      const max = parseInt(el.max, 10);
+      const value = Math.round(min + percent * (max - min));
+      if (handleEl)
+          handleEl.style.left = `calc(10px + (100% - 20px) * ${percent})`;
+      if (String(value) === el.value) return;
+      el.value = value;
+      el.dispatchEvent(new Event('input', { bubbles: true }));
+  }
+
+  // Pointer-drag lifecycle for .slider-thumb-handle. onDragStart/onDragEnd are the
+  // slider-specific bubble-show/hide callbacks (showBubble/showGroupBubble/showBalBubble
+  // and their hide counterparts).
+  function startThumbDrag(e, handleEl, inputId, onDragStart) {
+      e.preventDefault();
+      const el = document.getElementById(inputId);
+      if (!el) return;
+      handleEl.setPointerCapture(e.pointerId);
+      onDragStart();
+      updateSliderFromPointer(e, el, handleEl);
+  }
+
+  function moveThumbDrag(e, handleEl, inputId) {
+      if (!handleEl.hasPointerCapture(e.pointerId)) return;
+      updateSliderFromPointer(e, document.getElementById(inputId), handleEl);
+  }
+
+  function endThumbDrag(e, handleEl, inputId, onDragEnd) {
+      if (!handleEl.hasPointerCapture(e.pointerId)) return;
+      handleEl.releasePointerCapture(e.pointerId);
+      const el = document.getElementById(inputId);
+      if (el) el.dispatchEvent(new Event('change', { bubbles: true }));
+      onDragEnd();
   }
 
   // Handles live dragging of the volume slider.
@@ -816,7 +898,7 @@
       if (bubble && el) {
           bubble.innerText = value;
           const percent = (value - el.min) / (el.max - el.min);
-          const thumbWidth = 15;
+          const thumbWidth = 20;
           const trackWidth = el.offsetWidth - thumbWidth;
           const newLeft = el.offsetLeft + (percent * trackWidth) + (thumbWidth / 2);
           bubble.style.left = `${newLeft}px`;
@@ -877,7 +959,7 @@
       const el = document.getElementById(`grp-${ip}`);
       if (bubble && el) {
           const percent = (el.value - el.min) / (el.max - el.min);
-          const thumbWidth = 15;
+          const thumbWidth = 20;
           const trackWidth = el.offsetWidth - thumbWidth;
           const newLeft = el.offsetLeft + (percent * trackWidth) + (thumbWidth / 2);
 
@@ -922,7 +1004,7 @@
       if (bubble && el) {
           bubble.innerText = val;
           const percent = (val - el.min) / (el.max - el.min);
-          const thumbWidth = 15;
+          const thumbWidth = 20;
           const trackWidth = el.offsetWidth - thumbWidth;
           const newLeft = el.offsetLeft + (percent * trackWidth) + (thumbWidth / 2);
           bubble.style.left = `${newLeft}px`;
@@ -1006,7 +1088,7 @@
       const el = document.getElementById(`bal-${ip}`);
       if (bubble && el) {
           const percent = (el.value - el.min) / (el.max - el.min);
-          const thumbWidth = 15;
+          const thumbWidth = 20;
           const trackWidth = el.offsetWidth - thumbWidth;
           const newLeft = el.offsetLeft + (percent * trackWidth) + (thumbWidth / 2);
 
@@ -1058,7 +1140,7 @@
       if (bubble && el) {
           bubble.innerText = displayTxt;
           const percent = (val - el.min) / (el.max - el.min);
-          const thumbWidth = 15;
+          const thumbWidth = 20;
           const trackWidth = el.offsetWidth - thumbWidth;
           const newLeft = el.offsetLeft + (percent * trackWidth) + (thumbWidth / 2);
           bubble.style.left = `${newLeft}px`;

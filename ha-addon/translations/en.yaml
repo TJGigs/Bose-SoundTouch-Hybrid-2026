@@ -26,6 +26,12 @@ configuration:
     description: >-
       LEAVE BLANK TO AUTO-DETECT. This is the local IP address of the server running Bose SoundTouch Hybrid..
       Only set this manually if Home Assistant has multiple network interfaces and auto-detect picks one your speakers can't reach.
+  scan_subnet:
+    name: "Speaker Scan Subnet (optional):"
+    description: >-
+      LEAVE BLANK for almost every setup — the speaker discovery scan normally figures this out on its own.
+      Only set this if your speakers are on a DIFFERENT subnet/VLAN than Home Assistant (the scan can't find
+      them automatically in that case). Enter the speakers' own subnet as a CIDR block, e.g. 192.168.1.0/24.
   assigned_app_port:
     name: "Bose SoundTouch Hybrid App Port: Auto Assigned By HA (informational only):"
     description: >-

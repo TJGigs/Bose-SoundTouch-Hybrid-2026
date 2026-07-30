@@ -742,10 +742,16 @@ router.post('/manager/save', async (req, res) => {
         };
         lib.push(favItem);
     } else {
-        // Keep the favorite's metadata in sync if the user edits its name/art from a preset
+        // Display metadata (name/art) always stays in sync across the Favorite and
+        // any Preset assignments of the same content. Playback settings do NOT —
+        // shuffle/repeat are independent per row, so the Favorite's own settings
+        // only get touched here when the Favorite itself is what's being edited
+        // (targetSlot === 0). Editing a Preset's settings must not leak onto it.
         favItem.name = name;
         favItem.image = image;
-        favItem.settings = { shuffle: settings?.shuffle || false, repeat: settings?.repeat || 'off' };
+        if (targetSlot === 0) {
+            favItem.settings = { shuffle: settings?.shuffle || false, repeat: settings?.repeat || 'off' };
+        }
     }
 
     // 2. Handle the specific Preset Assignment

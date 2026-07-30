@@ -1,9 +1,9 @@
 // ============================================================================
 // PHASE 1: IMPORTS & CONSTANTS
 // ============================================================================
-const CURRENT_VERSION = "v4.1";
-const ENV_SCHEMA_VERSION = "v4";
-const SETTINGS_SCHEMA_VERSION = "v4.1";
+const CURRENT_VERSION = "v4.2";
+const ENV_SCHEMA_VERSION = "v4.2";
+const SETTINGS_SCHEMA_VERSION = "v4.2";
 const minReq = [2, 9, 9]; //MASS VERSION
 let UPDATE_CACHED_DATA = { updateAvailable: false, current: CURRENT_VERSION };
 const express = require('express');
@@ -175,6 +175,7 @@ const DEFAULT_SETTINGS = {
     includeReboot: true,
     doubleTapPresets: false,
     presetPreview: true,
+    descriptivePresets: false,
     restrictedMode: false,
     adminPin: "",
     scheduledEvents: [],
@@ -357,22 +358,31 @@ if (!isReady) {
         // Scans the network, merges results into speakers.json (preserving offline speakers,
         // self-healing any name/type/deviceId drift on ones it does find), then writes the file.
         {
-            const { discoverSpeakers } = require('./routes/utils');
-            const massIp = process.env.MASS_IP;
-            const subnet = massIp ? massIp.split('.').slice(0, 3).join('.') : null;
-            if (subnet) {
+            const { discoverSpeakers, getScanTarget, resolveConfiguredIps } = require('./routes/utils');
+
+            // Resolve APP_IP/MASS_IP once, before anything below (or preflight's NVRAM
+            // injection later this boot) reads a resolved value — hostname-safe for #155.
+            // See Docs/design_subnet_and_hostname_resolution.md.
+            await resolveConfiguredIps();
+
+            const scanTarget = getScanTarget(); // SCAN_SUBNET override, or MASS_IP-derived /24 — see #143
+            if (scanTarget) {
                 console.log("\n============================================================================");
-                console.log(`[Boot]  🔍  Speaker Discovery Scan (subnet ${subnet}.0/24)...`);
+                console.log(`[Boot]  🔍  Speaker Discovery Scan (${scanTarget})...`);
                 console.log("============================================================================");
-                let discovered = await discoverSpeakers(subnet);
-                if (discovered.length === 0) {
+                let discovered = await discoverSpeakers(scanTarget);
+                let scanAttempt = 1;
+                while (discovered.length === 0 && scanAttempt < 3) {
                     // A cold container start can beat the host's network stack to the punch —
                     // ARP/routing may not be settled yet for a 254-way parallel burst on the
-                    // very first boot after install. One retry after a short delay is enough
-                    // for it to resolve on its own without requiring a manual restart.
-                    console.log(`[Boot] First scan found 0 speakers — retrying once after a short delay (cold-start network settle)...`);
-                    await new Promise(resolve => setTimeout(resolve, 5000));
-                    discovered = await discoverSpeakers(subnet);
+                    // very first boot after install. A fresh install has nothing saved in
+                    // speakers.json to fall back on if every attempt whiffs, so this gets a
+                    // longer settle delay and one extra retry versus an established install
+                    // (which just keeps its previously-saved speakers regardless).
+                    scanAttempt++;
+                    console.log(`[Boot] Scan found 0 speakers — retrying (attempt ${scanAttempt}/3) after a 10s delay (cold-start network settle)...`);
+                    await new Promise(resolve => setTimeout(resolve, 10000));
+                    discovered = await discoverSpeakers(scanTarget);
                 }
                 const discoveredIps = new Set(discovered.map(s => s.ip));
 
@@ -407,7 +417,7 @@ if (!isReady) {
                 }
                 console.log("============================================================================");
                 if (savedSpeakers.length === 0) {
-                    console.log(`[Boot] ⚠️ speakers.json has 0 speaker(s) — no Bose SoundTouch devices found on ${subnet}.0/24. Will retry on next restart.`);
+                    console.log(`[Boot] ⚠️ speakers.json has 0 speaker(s) — no Bose SoundTouch devices found on ${scanTarget}. Will retry on next restart.`);
                 } else {
                     console.log(`[Boot]  speakers.json now has ${savedSpeakers.length} speaker(s) total.`);
                 }
@@ -525,7 +535,8 @@ if (!isReady) {
                         const info = data.info || {};
                         const currentMargeUrl = info.margeURL || info.margeServerUrl || "";
 
-                        if (!currentMargeUrl.includes(`${process.env.APP_IP}:${process.env.APP_PORT}`)) {
+                        const { getResolvedAppIp } = require('./routes/utils');
+                        if (!currentMargeUrl.includes(`${getResolvedAppIp()}:${process.env.APP_PORT}`)) {
                             console.log(`\n============================================================================`);
                             console.log(`🚨 LEGACY V1/V2 CONFIGURATION DETECTED ON ${ip}!`);
                             console.log(`   The speaker is refusing the V3 update because an old USB hack file`);

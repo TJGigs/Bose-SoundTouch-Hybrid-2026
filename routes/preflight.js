@@ -214,7 +214,12 @@ async function runSetup(forceInjectTarget = null, forceRebootTarget = null) {
     }
 
     const SPEAKERS = JSON.parse(fs.readFileSync(configPath, 'utf8'));
-    const APP_IP = process.env.APP_IP;
+    // Resolved, never the raw env var — these get written straight into the
+    // speaker's own NVRAM below, so a configured hostname must never reach it.
+    // See Docs/design_subnet_and_hostname_resolution.md. Callers of runSetup()
+    // (server.js's boot sequence) already call resolveConfiguredIps() first.
+    const { getResolvedAppIp } = require('./utils');
+    const APP_IP = getResolvedAppIp();
     const APP_PORT = process.env.APP_PORT;
     const parser = new xml2js.Parser({ explicitArray: false });
     const rebootedIps = [];

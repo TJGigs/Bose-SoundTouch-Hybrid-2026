@@ -400,12 +400,12 @@ router.post('/admin/set_wifi', async (req, res) => {
 // --- SPEAKER DISCOVERY ---
 router.get('/admin/discover', async (req, res) => {
     try {
-        const { discoverSpeakers } = require('./utils');
-        const massIp = process.env.MASS_IP;
-        if (!massIp) return res.status(500).json({ error: 'MASS_IP not configured' });
-        const subnet = massIp.split('.').slice(0, 3).join('.');
-        console.log(`[Tools] 🔍 Manual speaker discovery triggered on ${subnet}.0/24`);
-        const speakers = await discoverSpeakers(subnet);
+        const { discoverSpeakers, getScanTarget, resolveConfiguredIps } = require('./utils');
+        if (!process.env.MASS_IP) return res.status(500).json({ error: 'MASS_IP not configured' });
+        await resolveConfiguredIps(); // re-resolve in case a configured hostname's IP has changed
+        const scanTarget = getScanTarget(); // SCAN_SUBNET override, or MASS_IP-derived /24 — see #143
+        console.log(`[Tools] 🔍 Manual speaker discovery triggered on ${scanTarget}`);
+        const speakers = await discoverSpeakers(scanTarget);
         console.log(`[Tools] 🔍 Discovery complete — found ${speakers.length} speaker(s).`);
         res.json(speakers);
     } catch (e) {

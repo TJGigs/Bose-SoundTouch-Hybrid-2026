@@ -736,6 +736,31 @@ async function syncVolumeToMass(ip, volumeLevel) {
     }
 }
 
+// Sets a speaker's volume directly — same underlying MASS command as
+// syncVolumeToMass above, but the other direction: that one pushes the
+// speaker's observed volume up to MASS, this one tells MASS (and therefore
+// the speaker) what volume to be at. Used by scheduled play's optional
+// per-event volume override — left unset, a scheduled play leaves whatever
+// volume the speaker is already at untouched.
+async function setVolume(ip, volumeLevel) {
+    const { id } = await resolvePlayer(ip);
+    if (!id) return false;
+    const token = await getToken();
+    if (!token) return false;
+    try {
+        await client.post(`${BASE_URL}`, {
+            command: "players/cmd/volume_set",
+            args: { player_id: id, volume_level: volumeLevel },
+            message_id: Date.now()
+        }, { headers: { 'Authorization': `Bearer ${token}` } });
+        console.log(`[MASS] 🔊 Volume set for ${ip}: ${volumeLevel}`);
+        return true;
+    } catch (e) {
+        console.log(`[MASS] ⚠️ Volume set failed for ${ip}: ${e.message}`);
+        return false;
+    }
+}
+
 // =======================================================================
 // SECTION 8: EXPORTS
 // =======================================================================
@@ -759,5 +784,6 @@ module.exports = {
     resetHealth,
     playHealthWarning,
     forceRescan,
-    syncVolumeToMass
+    syncVolumeToMass,
+    setVolume
 };

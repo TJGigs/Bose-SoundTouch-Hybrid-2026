@@ -2,6 +2,7 @@ const { URL } = require('url'); // Standard Node.js library
 const fs = require('fs');
 const path = require('path');
 const net = require('net');
+const dns = require('dns');
 const axios = require('axios');
 const xml2js = require('xml2js');
 const DEFAULT_ICON = "";
@@ -48,6 +49,63 @@ function parseIp(input) {
     // 3. Extract pure IPv4 if garbage remains
     const match = str.match(/\b(?:\d{1,3}\.){3}\d{1,3}\b/);
     return match ? match[0] : str;
+}
+
+// --- CONFIGURED HOST RESOLUTION (hostname-safe APP_IP/MASS_IP) ---
+// APP_IP/MASS_IP are usually numeric, but users can configure a local DNS
+// hostname instead (#155). Everywhere those values get baked into a URL sent
+// to the speaker (NVRAM injection in preflight.js, preset URLs here, the
+// discovery scan's subnet math) needs a real IP — the speaker's own embedded
+// firmware can't be trusted to resolve an arbitrary local hostname itself.
+// Design: Docs/design_subnet_and_hostname_resolution.md
+let _resolvedAppIp = null;
+let _resolvedMassIp = null;
+
+// Resolves one configured value if it's a hostname, leaves it alone if it's
+// already numeric. Retries on cold-start DNS hiccups (mirrors the discovery
+// scan's own cold-start retry pattern), then falls back to the raw value —
+// never blocks boot, and never crashes the app — logging clearly either way.
+async function _resolveConfiguredHost(raw, label) {
+    if (!raw || net.isIP(raw)) return raw;
+    const maxAttempts = 3;
+    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+        try {
+            const { address } = await dns.promises.lookup(raw);
+            console.log(`[Boot] ${label} '${raw}' resolved to ${address}.`);
+            return address;
+        } catch (e) {
+            if (attempt < maxAttempts) {
+                console.log(`[Boot] ${label} '${raw}' did not resolve yet (attempt ${attempt}/${maxAttempts}) — retrying in 5s...`);
+                await new Promise(r => setTimeout(r, 5000));
+            } else {
+                console.error(`[Boot] ⚠️ ${label} '${raw}' could not be resolved via DNS after ${maxAttempts} attempts (${e.message}). Falling back to the raw value — speaker-facing URLs and the discovery scan may not work correctly until this resolves.`);
+            }
+        }
+    }
+    return raw;
+}
+
+// Runs once at boot, and again on each scheduled speaker audit (runSpeakerAudit)
+// so a hostname's underlying IP drifting mid-runtime gets caught and re-resolved
+// on the same cadence preflight.js already uses to detect other config drift —
+// no new schedule invented. Caches results for the sync getResolvedAppIp()/
+// getResolvedMassIp() accessors below.
+async function resolveConfiguredIps() {
+    _resolvedAppIp = await _resolveConfiguredHost(process.env.APP_IP, 'APP_IP');
+    _resolvedMassIp = await _resolveConfiguredHost(process.env.MASS_IP, 'MASS_IP');
+    return { appIp: _resolvedAppIp, massIp: _resolvedMassIp };
+}
+
+// Sync accessors for every call site that builds a speaker-facing URL. Before
+// resolveConfiguredIps() has run once (should only happen if something calls
+// this ahead of boot's resolution step), falls back to the raw env var —
+// identical to today's pre-fix behavior, so this is never worse than what
+// exists now, only better once resolution has completed.
+function getResolvedAppIp() {
+    return _resolvedAppIp || process.env.APP_IP;
+}
+function getResolvedMassIp() {
+    return _resolvedMassIp || process.env.MASS_IP;
 }
 
 // --- SHARED MASS PLAYER MATCHER ---
@@ -98,7 +156,7 @@ const powerOffTimerDeadline = {};     // ip → epoch ms when an armed power off
 // during its handshake) and pushPresetsToSpeaker() below (direct local WAPI write).
 // Keeping both fed from here means the two delivery paths can never drift apart.
 function getHybridPresetDefinitions() {
-    const IP = process.env.APP_IP;
+    const IP = getResolvedAppIp();
     const PORT = process.env.APP_PORT;
     const definitions = [];
     for (let i = 1; i <= 6; i++) {
@@ -115,7 +173,7 @@ function getHybridPresetDefinitions() {
 // Returns true when the ContentItem in the event is one of our own bridge preset URLs, meaning
 // the bridge will handle the press via the /preset/:id.mp3 HTTP route — no MASS call needed here.
 function isHybridContentItem(source, location) {
-    const APP_IP   = process.env.APP_IP;
+    const APP_IP   = getResolvedAppIp();
     const APP_PORT = process.env.APP_PORT;
     return source === 'LOCAL_INTERNET_RADIO' &&
            typeof location === 'string' &&
@@ -126,7 +184,7 @@ function isHybridContentItem(source, location) {
 // speakerHasHybridPresets: confirms slots contain LOCAL_INTERNET_RADIO URLs pointing
 // back to this bridge. Returns true on fetch error to avoid false-positive reboots.
 async function speakerHasHybridPresets(ip) {
-    const APP_IP = process.env.APP_IP;
+    const APP_IP = getResolvedAppIp();
     const APP_PORT = process.env.APP_PORT;
     try {
         const res = await axios.get(`http://${ip}:8090/presets`, { timeout: 3000 });
@@ -257,6 +315,12 @@ async function runSpeakerAudit(hour = null, minute = null) {
     console.log(`[Scheduler] 🕒 ${fmtScheduledTime(hour, minute)} Routine: Executing Speaker Preset Audit...`);
     console.log(`=======================================================================`);
 
+    // Re-resolve APP_IP/MASS_IP if either is configured as a hostname, so a
+    // changed IP behind a stable hostname gets caught on the same cadence
+    // this audit already re-checks everything else — see
+    // Docs/design_subnet_and_hostname_resolution.md.
+    await resolveConfiguredIps();
+
     const speakersPath = path.join(process.cwd(), 'config', 'speakers.json');
     const speakers = fs.existsSync(speakersPath) ? JSON.parse(fs.readFileSync(speakersPath, 'utf8')) : [];
 
@@ -316,7 +380,8 @@ function startScheduler() {
         const now = new Date();
         const hours = now.getHours();
         const minutes = now.getMinutes();
-        const today = now.toDateString(); 
+        const today = now.toDateString();
+        const dayOfWeek = now.getDay(); // 0=Sun..6=Sat, for scheduled-event 'days' filtering below
 		
 		// ==========================================================
         // 🕒 PERMANENT DEBUG LOGGER (Prints every 60 seconds)
@@ -379,10 +444,19 @@ function startScheduler() {
             if (!evt.speakerIp || evt.hour == null) continue;
             if (evt.action === 'play' && !evt.preset) continue;
             if (evt.enabled === false) continue;
+            // evt.days restricts which day-of-week this fires on — omitted means every
+            // day. The add-schedule UI only ever offers a value here that doesn't
+            // overlap another schedule for the same speaker+action (see tools.html's
+            // getAvailableDaysFor), so this is just honoring that at fire time.
+            if (evt.days === 'weekday' && (dayOfWeek === 0 || dayOfWeek === 6)) continue;
+            if (evt.days === 'weekend' && dayOfWeek >= 1 && dayOfWeek <= 5) continue;
             const evtHour   = parseInt(evt.hour, 10);
             const evtMinute = parseInt(evt.minute ?? 0, 10);
             if (hours !== evtHour || minutes !== evtMinute) continue;
-            const evtKey = `${today}-${evt.speakerIp}-${evt.action}-${evt.preset ?? ''}`;
+            // Includes hour/minute so a weekday schedule and a weekend schedule for the
+            // same speaker/action/preset don't collide in the same day's dedup set —
+            // only possible now that more than one schedule per speaker/action can exist.
+            const evtKey = `${today}-${evt.speakerIp}-${evt.action}-${evt.preset ?? ''}-${evtHour}:${evtMinute}`;
             if (firedToday.has(evtKey)) continue;
             firedToday.add(evtKey);
 			    console.log(`\n=======================================================================`);
@@ -398,7 +472,7 @@ function startScheduler() {
                 console.log(`[Scheduler] Scheduled Play: Speaker ${evt.speakerIp} Preset ${evt.preset}`);
 			    console.log(`=======================================================================`);
                 try {
-                    await executeSmartPreset(evt.speakerIp, evt.preset);
+                    await firePlayEvent(evt);
                 } catch (e) {
                     console.error(`[Scheduler] ❌ Scheduled Play failed (${evt.speakerIp} P${evt.preset}):`, e.message);
                 }
@@ -438,6 +512,19 @@ function startScheduler() {
                 console.log(`[Scheduler] Power Off Timer expired for ${ip} — powering off.`);
                 try {
                     await powerOffSpeaker(ip);
+                    // mode: 'once' timers disable themselves after firing — reusing the same
+                    // `enabled` flag the UI's checkbox already controls, so re-arming one is
+                    // just re-checking that box. This is the first thing this loop persists
+                    // back to settings.json rather than only reading it; `settings` here is
+                    // this same tick's freshly-parsed object, so this can't clobber a change
+                    // from an earlier point in the same tick — only a near-simultaneous save
+                    // from the Tools UI could race it, which is an acceptable, low-stakes edge
+                    // case consistent with how settings.json is written elsewhere in the app.
+                    if (timer.mode === 'once') {
+                        timer.enabled = false;
+                        fs.writeFileSync(settingsPath, JSON.stringify(settings, null, 4));
+                        console.log(`[Scheduler] Power Off Timer for ${ip} was one-time — disabled after firing.`);
+                    }
                 } catch (e) {
                     console.error(`[Scheduler] ❌ Power Off Timer failed (${ip}):`, e.message);
                 }
@@ -479,6 +566,45 @@ async function executeSmartPreset(ip, id) {
         console.log(`   ⚠️ No item assigned to Slot ${id}`);
         return false; // 🌟 Tells bridge.js to abort the silence stream!
     }
+}
+
+// Shared "play this preset, then apply this optional volume" — used by the scheduler's
+// clock-triggered 'play' events above and by triggerOnDemand() below, so the HA webhook
+// and Scheduled Play fire identically instead of each having their own copy of this.
+async function firePlayEvent(evt) {
+    const success = await executeSmartPreset(evt.speakerIp, evt.preset);
+    if (success && evt.volume != null) {
+        const mass = require('./mass'); // dynamic require — see circular-dependency note elsewhere in this file
+        await mass.setVolume(evt.speakerIp, evt.volume);
+    }
+    return success;
+}
+
+// Looks up and fires the configured "On Demand" entry for a speaker — the backend for
+// the /api/ondemand/:speakerIp webhook (routes/controller.js), which Home Assistant (or
+// anything else on the LAN) can call to trigger playback without going through the
+// SoundTouch Hybrid UI. On-demand entries are 'play'-only scheduledEvents with no hour
+// set (already skipped by the clock loop above) and an explicit trigger: 'ondemand'
+// marker. No preset/volume override accepted here by design — all configuration stays
+// in the app's own Scheduled Play page, not scattered into external automation configs.
+async function triggerOnDemand(speakerIp) {
+    const settingsPath = path.join(process.cwd(), 'config', 'settings.json');
+    const speakersPath = path.join(process.cwd(), 'config', 'speakers.json');
+    const settings = fs.existsSync(settingsPath) ? JSON.parse(fs.readFileSync(settingsPath, 'utf8')) : {};
+    const speakers = fs.existsSync(speakersPath) ? JSON.parse(fs.readFileSync(speakersPath, 'utf8')) : [];
+
+    // Checked separately from "no entry configured" below so a caller gets a distinct
+    // answer for "you typo'd/misconfigured the IP" vs. "the IP is right, you just
+    // haven't set up an On Demand entry for it yet" — otherwise both look identical.
+    if (!speakers.some(s => s.ip === speakerIp)) {
+        return { success: false, reason: 'unknown_speaker' };
+    }
+
+    const events = Array.isArray(settings.scheduledEvents) ? settings.scheduledEvents : [];
+    const evt = events.find(e => e.speakerIp === speakerIp && e.trigger === 'ondemand' && e.enabled !== false);
+    if (!evt) return { success: false, reason: 'not_configured' };
+    const success = await firePlayEvent(evt);
+    return { success, reason: success ? null : 'play_failed' };
 }
 
 
@@ -654,16 +780,63 @@ async function checkAndRecoverStuckSpeaker(ip) {
     }
 }
 
+// --- SCAN TARGET RESOLUTION (#143, #155) ---
+// Expands a CIDR block (e.g. "192.168.4.0/23") into its usable host IPs,
+// skipping the network and broadcast addresses. Supports anything from /16
+// to /30 — the VLAN-split case in #143 needs at least /23.
+function expandCidr(cidr) {
+    const [base, prefixStr] = cidr.split('/');
+    const prefix = parseInt(prefixStr, 10);
+    const octets = base.split('.').map(Number);
+    if (octets.length !== 4 || octets.some(o => Number.isNaN(o) || o < 0 || o > 255) ||
+        Number.isNaN(prefix) || prefix < 16 || prefix > 30) {
+        return null;
+    }
+    const baseInt = ((octets[0] << 24) | (octets[1] << 16) | (octets[2] << 8) | octets[3]) >>> 0;
+    const hostBits = 32 - prefix;
+    const blockSize = Math.pow(2, hostBits);
+    const networkInt = (baseInt & (~(blockSize - 1) >>> 0)) >>> 0;
+
+    const ips = [];
+    for (let i = 1; i < blockSize - 1; i++) { // skip .0 (network) and the last address (broadcast)
+        const ipInt = (networkInt + i) >>> 0;
+        ips.push([(ipInt >>> 24) & 255, (ipInt >>> 16) & 255, (ipInt >>> 8) & 255, ipInt & 255].join('.'));
+    }
+    return ips;
+}
+
+// Single source of truth for "what should the discovery scan sweep?" —
+// SCAN_SUBNET (a full CIDR, e.g. "192.168.1.0/23") wins if the user set it,
+// for the split-VLAN case (#143) where MASS_IP's own subnet genuinely isn't
+// the speakers' subnet and can't be inferred. Otherwise falls back to the
+// existing MASS_IP-derived /24 — now hostname-safe via getResolvedMassIp().
+function getScanTarget() {
+    const override = (process.env.SCAN_SUBNET || '').trim();
+    if (override) return override;
+    const massIp = getResolvedMassIp();
+    return massIp ? `${massIp.split('.').slice(0, 3).join('.')}.0/24` : null;
+}
+
 // --- SPEAKER DISCOVERY ---
-// Scans a /24 subnet for Bose SoundTouch speakers via parallel /info requests.
-// Used both at boot (auto-discovery when speakers.json has template data) and
-// by the manual discovery endpoint in tools.js.
-async function discoverSpeakers(subnet) {
+// Scans a CIDR block for Bose SoundTouch speakers via parallel /info requests.
+// Accepts a full CIDR ("192.168.4.0/24") from getScanTarget(); a bare
+// "a.b.c" prefix is still accepted for backward compatibility and treated as
+// a /24. Used both at boot (auto-discovery when speakers.json has template
+// data) and by the manual discovery endpoint in tools.js.
+async function discoverSpeakers(subnetOrCidr) {
     const parser = new xml2js.Parser({ explicitArray: false });
     const promises = [];
 
-    for (let i = 1; i <= 254; i++) {
-        const ip = `${subnet}.${i}`;
+    const targets = subnetOrCidr.includes('/')
+        ? expandCidr(subnetOrCidr)
+        : Array.from({ length: 254 }, (_, i) => `${subnetOrCidr}.${i + 1}`);
+
+    if (!targets) {
+        console.error(`[Discovery] ⚠️ Invalid scan target "${subnetOrCidr}" — skipping scan.`);
+        return [];
+    }
+
+    for (const ip of targets) {
         promises.push(
             axios.get(`http://${ip}:8090/info`, { timeout: 1500 })
                 .then(async res => {
@@ -727,5 +900,11 @@ module.exports = {
     queryPresetsForSpeaker,
     updateWatchdogGlobals,
     discoverSpeakers,
-    fetchSpeakerDeviceId
+    fetchSpeakerDeviceId,
+    resolveConfiguredIps,
+    getResolvedAppIp,
+    getResolvedMassIp,
+    getScanTarget,
+    expandCidr,
+    triggerOnDemand
 };

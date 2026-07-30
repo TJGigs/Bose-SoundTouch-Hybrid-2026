@@ -25,11 +25,13 @@ Once you see that line, click **Open Web UI** (or the link it prints) — the ap
 - **Fully Automated Bose Cloud Injection** — the entire cloud-redirect and preset setup sequence runs automatically on first boot. No USB stick, no manual firmware step — nothing to do on a previously configured or factory-reset speaker but let it join.
 - **Automatic Speaker Detection** — a network scan finds every SoundTouch speaker on first boot and every reboot after. No manual IP entry, no speaker list to maintain.  
 - **12 Physical Presets, Not 6** — double-tap any of the six buttons to unlock six more (1→11, 2→22, and so on), all mapped to your SoundTouch Hybrid Library (powered by Music Assistant).
-- **Hardware-Native Multi-Room Grouping** — uses the speakers' own near-zero-latency master/slave hardware instead of software sync, across multiple independent groups at once. ST10 owners can also pair two units as a true stereo left/right pair.
+- **Hardware-Native Multi-Room Grouping** — uses the speakers' own near-zero-latency master/slave hardware instead of software sync, across multiple independent groups at once, each with its own selectable master.
+- **ST10 Stereo Pairing** — pair two ST10 units together as a true stereo left/right pair.
 - **100% Local Control** — application and speaker credentials, playback, preset logic all stay on your own LAN. No Bose cloud dependency or external servers.
-- **Physical Remote Control Hijacks** —  Pause/Play, Next/Prev controls work again for DLNA and Pause/Play for AirPlay. Augmenting the remaining original still functional volume, power, and presets controls,
+- **Physical Remote Control Hijacks** — Pause/Play and Next/Prev works again over DLNA, and Pause/Play over AirPlay, augmenting the volume, power, and preset controls that never stopped working.
 - **Real-Time Preset Self-Healing** — if a speaker's presets get wiped (a known legacy-firmware degraded WiFi failure mode), they're detected and re-injected automatically, no restart required.
 - **DLNA and AirPlay, Both Fully Supported** — side by side, your choice per speaker.
+- **On Demand External Trigger:** Configure a speaker's preset (and optional volume) as an "On Demand" entry on the Scheduled Play page, then trigger it from outside the app — e.g. a Home Assistant automation — via a simple webhook, with no separate integration to install. See the Technical Documentation for setup details.
 
 For the complete feature list see **Application Key Features** in the [main README](https://github.com/TJGigs/Bose-SoundTouch-Hybrid#readme).
 

@@ -147,7 +147,7 @@
       const el = document.getElementById(`br-${idSuffix.split('-')[1]}`); 
       if (bubble && el) {
           const percent = (el.value - el.min) / (el.max - el.min);
-          const newLeft = percent * (el.offsetWidth - 15) + (15/2); 
+          const newLeft = percent * (el.offsetWidth - 20) + (20/2); 
           bubble.style.left = `${newLeft}px`;
           bubble.innerText = el.value;
           bubble.classList.add('visible');
@@ -166,7 +166,7 @@
       if (bubble && el) {
           bubble.innerText = value;
           const percent = (value - el.min) / (el.max - el.min);
-          const newLeft = percent * (el.offsetWidth - 15) + (15/2); 
+          const newLeft = percent * (el.offsetWidth - 20) + (20/2); 
           bubble.style.left = `${newLeft}px`;
       }
   }

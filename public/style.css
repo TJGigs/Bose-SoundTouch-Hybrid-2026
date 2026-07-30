@@ -75,6 +75,16 @@ body.light-mode {
 /*    --console-text: #1a1a1a; /* custom dark grey/black JUST for the console */
 }
 
+/* The viewport meta's user-scalable=no (control.html) stops Android from
+   zooming, but iOS Safari has ignored user-scalable=no for pinch-zoom since
+   iOS 10 (an Apple accessibility override) — touch-action is the CSS-level
+   knob iOS actually respects. pan-y (not manipulation) is required here:
+   manipulation still permits pinch-zoom, only pan-y also blocks it, and
+   pan-y (vs none) keeps normal vertical page scrolling working. */
+html, body {
+    touch-action: pan-y;
+}
+
 body {
     background: var(--bg);
     color: var(--text);
@@ -291,6 +301,31 @@ button:disabled, .btn:disabled {
 }
 .btn-preset-ext { /* same size as standard presets; class kept as semantic hook */ }
 
+/* --- DESCRIPTIVE PRESETS (gated by descriptivePresets setting) ---
+   A single button spans 3 grid columns (what 2 normal preset buttons + the gap
+   between them would occupy), combining the preset number and its name in one
+   label. Same .btn-preset base, so height/hover/active styling stay identical.
+   Flexbox + an inner span (rather than text-align/ellipsis on the <button>
+   itself) — some browsers center a button's own content box regardless of
+   text-align, so alignment/truncation is done on a child element instead. */
+.btn-preset-wide {
+    grid-column: span 3;
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    padding-left: 10px;
+    padding-right: 10px;
+    overflow: hidden;
+}
+.btn-preset-wide .preset-label {
+    display: block;
+    width: 100%;
+    text-align: left;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
 /* --- PRESET PREVIEW POPUP --- */
 #preset-preview-popup {
     display: none;
@@ -325,21 +360,50 @@ button:disabled, .btn:disabled {
 /* --- SLIDER STYLING --- */
 .slider-container { display: flex; align-items: center; gap: 10px; margin-bottom: 5px; }
 
-input[type=range] { 
-    flex-grow: 1; 
-    accent-color: var(--accent); 
-    height: 4px; 
-    background: #333; 
-    border-radius: 2px; 
-    width: 100%; 
+/* Touch-only drag handle: a small, fully transparent hitbox positioned over the
+   slider's current value (via the thumbLeft() calc() in control.html, which matches
+   the native thumb's real thumbWidth/2-inset center exactly — not just a plain CSS %
+   of track width — so it stays centered on the real thumb across polling refreshes
+   with no extra JS bookkeeping — see startThumbDrag/moveThumbDrag/endThumbDrag in
+   control.html). Sized well beyond the visible 20px thumb as a generous touch target;
+   purely functional, nothing rendered. Inert on desktop (pointer-events:none) so mouse
+   interaction with the native input is untouched. */
+.slider-thumb-handle {
+    position: absolute;
+    top: 50%;
+    width: 56px;
+    height: 56px;
+    transform: translate(-50%, -50%);
+    pointer-events: none;
+    touch-action: none;
+}
+@media (pointer: coarse) {
+    .slider-thumb-handle { pointer-events: auto; }
+    /* Removes the native input from touch hit-testing for these three sliders
+       (control.html's VOL/GRP/BAL — NOT the admin page's Bass slider, which
+       intentionally has no guard). .slider-thumb-handle above is the only touch
+       target once this applies. */
+    input.slider-guarded { pointer-events: none; }
+}
+
+input[type=range] {
+    -webkit-appearance: none; /* Resets native OS styling on the control itself, not
+        just the thumb pseudo-element below. */
+    appearance: none;
+    flex-grow: 1;
+    accent-color: var(--accent);
+    height: 4px;
+    background: #333;
+    border-radius: 2px;
+    width: 100%;
 	cursor: pointer;
 }
 
 /* DRAGGABLE THUMB ZOOM */
 input[type=range]::-webkit-slider-thumb {
     -webkit-appearance: none; /* Removes Apple's locked styling */
-    height: 15px;
-    width: 15px;
+    height: 20px;
+    width: 20px;
     border-radius: 50%;
     background: var(--accent); /* Restores your exact Green theme! */
     cursor: pointer;
@@ -352,8 +416,8 @@ input[type=range]::-webkit-slider-thumb {
 }
 
 input[type=range]::-moz-range-thumb {
-    height: 15px;
-    width: 15px;
+    height: 20px;
+    width: 20px;
     border-radius: 50%;
     background: var(--accent); /* Restores your exact Green theme! */
     border: none;
@@ -660,9 +724,9 @@ label[style*="color"] {
     background: var(--accent);
     color: #000;
     font-weight: bold;
-    padding: 4px 8px;
+    padding: 6px 10px;
     border-radius: 4px;
-    font-size: 0.8em;
+    font-size: 1em;
     pointer-events: none; /* Let clicks pass through */
     opacity: 0; /* Hidden by default */
     transform: translateX(-50%); /* Centers bubble on the handle */
