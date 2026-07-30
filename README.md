@@ -10,7 +10,7 @@ It runs locally on your network (NAS, PC, or Home Assistant add-on) and intercep
 
 ## ⚠️ Upgrading to v4.2
 
-* **Application settings are being reinitialized.** Startup detects the old settings schema and backs up your existing `settings.json` to `settings.json.bak`. Re-configure Scheduled Play/Off, Power Off Timers, and other preferences on first boot.
+* **Application settings are being reinitialized.** Startup detects the old settings format and backs it up to `settings.json.bak`. Make any changes as desired on first boot — scheduled plays, admin PIN, and other preferences start fresh.
 * **New `.env` schema.** Startup copies a fresh `.env` template into your directory and backs up your old file. Re-enter your values into the new `.env`.  Don't reuse your old `.env` file 
 * **New [`bose-soundtouch-hybrid.yml`](https://github.com/TJGigs/Bose-SoundTouch-Hybrid/blob/main/bose-soundtouch-hybrid.yml) required.** Download the current version.  Don't reuse an old copy.
 * **Application settings are being reinitialized.** Startup detects the old settings format and backs it up to `settings.json.bak`. Make any changes as desired on first boot — scheduled plays, admin PIN, and other preferences start fresh.
