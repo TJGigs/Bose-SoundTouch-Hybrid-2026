@@ -247,7 +247,7 @@ button:active, .btn:active, .nav-btn:active, .source-btn:active, .filter-pill:ac
 .btn-help:hover { border-color: #888; color: var(--text); }
 
 .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); align-items: center; justify-content: center; z-index: 3000; backdrop-filter: blur(4px); }
-.modal-content { background: var(--card); padding: 25px; border-radius: 12px; border: 1px solid var(--border); box-shadow: 0 10px 25px rgba(0,0,0,0.5); max-width: 600px; width: 90%; }
+.modal-content { background: var(--card); padding: 25px; border-radius: 12px; border: 1px solid var(--border); box-shadow: 0 10px 25px rgba(0,0,0,0.5); max-width: 600px; width: 90%; max-height: 85vh; overflow-y: auto; }
 .modal-content h2, .modal-content h3 { color: var(--title-color) !important; } 
 
 button:disabled, .btn:disabled { 
@@ -384,6 +384,20 @@ button:disabled, .btn:disabled {
        intentionally has no guard). .slider-thumb-handle above is the only touch
        target once this applies. */
     input.slider-guarded { pointer-events: none; }
+}
+
+/* Marks a configured min/max volume limit (discussion #186) on the 0-100 track,
+   positioned with the same thumbLeft() calc() as the thumb so it lines up with the
+   real cutoff position rather than a naive % of track width. */
+.slider-limit-tick {
+    position: absolute;
+    top: 50%;
+    width: 2px;
+    height: 12px;
+    transform: translate(-50%, -50%);
+    background: rgba(255, 255, 255, 0.35);
+    border-radius: 1px;
+    pointer-events: none;
 }
 
 input[type=range] {
@@ -1135,9 +1149,9 @@ input:disabled + label {
 }
 
 @media (max-width: 768px) {
-    /* On mobile: left-align everything */
+    /* On mobile: center to match .filter-row on other tabs */
     .fav-controls {
-        justify-content: flex-start !important; 
+        justify-content: center !important;
         margin-top: 5px;
     }
     

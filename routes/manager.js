@@ -172,7 +172,8 @@ function normalizeImage(i) {
         if (img && typeof img === 'object' && img.provider) {
             return {
                 path: img.path,
-                provider: img.provider
+                provider: img.provider,
+                proxyId: img.proxy_id
             };
         }
 
@@ -181,7 +182,8 @@ function normalizeImage(i) {
             const mImg = obj.metadata.images[0];
             return {
                 path: mImg.path,
-                provider: mImg.provider
+                provider: mImg.provider,
+                proxyId: mImg.proxy_id
             };
         }
 
@@ -205,13 +207,14 @@ function normalizeImage(i) {
 
     const finalPath = info ? info.path : null;
     const finalProv = info ? info.provider : null;
+    const finalProxyId = info ? info.proxyId : null;
 
     // If the image is already a direct web link, bypass the local proxy!
     if (finalPath && finalPath.startsWith('http')) {
         return finalPath;
     }
 
-    return utils.buildImageUrl(finalPath, finalProv, i.uri);
+    return utils.buildImageUrl(finalPath, finalProv, i.uri, finalProxyId);
 }
 
 // --- HELPER: SUBTITLE BUILDER ---
@@ -305,13 +308,17 @@ router.get('/manager/proxy_image', async(req, res) => {
         const token = await mass.getToken();
         let imageUrl = "";
 
-        // Mode 1: Proxy a Raw path via 'imageproxy' endpoint
-        if (req.query.mode === 'raw') {
+        // Mode 1: Proxy via MASS's proxy_id (current imageproxy addressing scheme)
+        if (req.query.mode === 'id') {
+            imageUrl = `${MASS_BASE_URL}/imageproxy/${encodeURIComponent(req.query.id)}`;
+        }
+        // Mode 2: Proxy a Raw path via legacy 'imageproxy' query-string endpoint
+        else if (req.query.mode === 'raw') {
             const rawPath = req.query.path;
             const provider = req.query.provider;
             imageUrl = `${MASS_BASE_URL}/imageproxy?path=${encodeURIComponent(rawPath)}&provider=${encodeURIComponent(provider)}&checksum=`;
         }
-        // Mode 2: Proxy a standard URI thumb
+        // Mode 3: Proxy a standard URI thumb
         else {
             const uri = req.query.uri;
             imageUrl = `${MASS_BASE_URL}/api/image/thumb/${encodeURIComponent(uri)}`;
@@ -733,24 +740,27 @@ router.post('/manager/save', async (req, res) => {
     // 1. ALWAYS ensure an immortal "Favorite" (slot 0) exists in the pool for this URI
     let favItem = lib.find(i => i.slot === 0 && i.uri === uri);
     if (!favItem) {
+        const favSettings = { shuffle: settings?.shuffle || false, repeat: settings?.repeat || 'off' };
+        if (type === 'podcast') favSettings.startFromLatest = settings?.startFromLatest || false;
         favItem = {
             uuid: crypto.randomUUID().split('-')[0],
             slot: 0,
             speakerIp: "",
             name, subtitle: subtitle || type, uri, image, type, provider: provider || 'unknown',
-            settings: { shuffle: settings?.shuffle || false, repeat: settings?.repeat || 'off' }
+            settings: favSettings
         };
         lib.push(favItem);
     } else {
         // Display metadata (name/art) always stays in sync across the Favorite and
         // any Preset assignments of the same content. Playback settings do NOT —
-        // shuffle/repeat are independent per row, so the Favorite's own settings
-        // only get touched here when the Favorite itself is what's being edited
-        // (targetSlot === 0). Editing a Preset's settings must not leak onto it.
+        // shuffle/repeat/startFromLatest are independent per row, so the Favorite's
+        // own settings only get touched here when the Favorite itself is what's being
+        // edited (targetSlot === 0). Editing a Preset's settings must not leak onto it.
         favItem.name = name;
         favItem.image = image;
         if (targetSlot === 0) {
             favItem.settings = { shuffle: settings?.shuffle || false, repeat: settings?.repeat || 'off' };
+            if (type === 'podcast') favItem.settings.startFromLatest = settings?.startFromLatest || false;
         }
     }
 
@@ -768,13 +778,27 @@ router.post('/manager/save', async (req, res) => {
             }
         }
 
+        // Preset-only playback settings — independent from the Favorite (favItem)
+        // above, which gets its own copy of startFromLatest/shuffle/repeat when it's
+        // what's actually being edited (targetSlot === 0, see RULE 1/2 above).
+        // startFromLatest (discussion #168): show-level podcasts only, so playback
+        // always opens on the newest episode instead of whatever MASS would otherwise
+        // resume/default to. volume (discussion #174): the preset's own default Start
+        // Volume, applied by executeSmartPreset() in utils.js. "Unchanged" arrives as ''
+        // and is omitted entirely rather than stored as 0 — mass.setVolume(0) would mute
+        // the speaker, so absence has to mean "leave it alone", not "silence it".
+        const presetSettings = { shuffle: settings?.shuffle || false, repeat: settings?.repeat || 'off' };
+        if (type === 'podcast') presetSettings.startFromLatest = settings?.startFromLatest || false;
+        const volVal = parseInt(settings?.volume, 10);
+        if (!isNaN(volVal)) presetSettings.volume = volVal;
+
         if (presetItem) {
             // Update the existing preset's pointers
             presetItem.slot = targetSlot;
             presetItem.speakerIp = targetIp;
             if (deviceId) presetItem.deviceId = deviceId;
             presetItem.name = name;
-            presetItem.settings = { shuffle: settings?.shuffle || false, repeat: settings?.repeat || 'off' };
+            presetItem.settings = presetSettings;
         } else {
             // We are saving a brand new preset assignment
             lib.push({
@@ -783,7 +807,7 @@ router.post('/manager/save', async (req, res) => {
                 speakerIp: targetIp,
                 ...(deviceId && { deviceId }),
                 name, subtitle: subtitle || type, uri, image, type, provider: provider || 'unknown',
-                settings: { shuffle: settings?.shuffle || false, repeat: settings?.repeat || 'off' }
+                settings: presetSettings
             });
         }
     } else {

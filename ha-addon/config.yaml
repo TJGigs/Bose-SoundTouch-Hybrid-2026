@@ -1,5 +1,5 @@
 name: "Bose SoundTouch Hybrid"
-version: "v4.2"
+version: "v4.3"
 slug: "bose_soundtouch_hybrid"
 description: "An open-source private SoundTouch cloud streaming service and application replacing the deactivated Bose Cloud Service to maintain 100% of the smart speaker functionality of your SoundTouch Speakers and Wireless Link. Physical Presets Included!"
 url: "https://github.com/TJGigs/Bose-SoundTouch-Hybrid"

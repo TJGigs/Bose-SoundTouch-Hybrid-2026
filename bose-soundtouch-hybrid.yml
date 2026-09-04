@@ -32,7 +32,7 @@
 
 services:
   bose-hybrid:
-    image: ghcr.io/tjgigs/bose-soundtouch-hybrid:v4.2
+    image: ghcr.io/tjgigs/bose-soundtouch-hybrid:v4.3
     
     container_name: bose-soundtouch-hybrid
     network_mode: "host"

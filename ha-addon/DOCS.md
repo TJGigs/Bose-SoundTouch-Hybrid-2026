@@ -8,7 +8,7 @@ Self-hosted replacement for Bose's discontinued SoundTouch Cloud service. Restor
 
 ***You must verify your SoundTouch speakers and streaming providers are fully working inside of Music Assistant before installing SoundTouch Hybrid.***
 
-Install Music Assistant (MASS): ***version 2.9.9 or later is required***
+Install Music Assistant (MASS): ***version 2.10.1 or later is required***
 
 1. **For installation instructions and troubleshooting, use Music Assistant Help** — setup, providers, speaker testing, playback issues, etc.
    * See [MASS GitHub](https://github.com/music-assistant/server) and [MASS Website](https://www.music-assistant.io/installation)

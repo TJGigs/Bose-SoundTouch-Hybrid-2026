@@ -65,19 +65,72 @@
     return formatted.replace(/<</g, '<').replace(/>>/g, '>').replace(/<>/g, '');
   }
 
+  // Per-speaker Volume Slider Limits dropdown options (discussion #186). Min and Max
+  // use fixed, non-overlapping ranges (min tops out at 30, max starts at 50) so an
+  // invalid combination is structurally impossible — no min/max cross-check needed.
+  // `selected` is the raw stored value (undefined when unset), not a resolved default,
+  // so an unconfigured speaker correctly shows "No Limit" rather than looking identical
+  // to an explicit bound.
+  function minVolLimitOptions(selected) {
+      let html = `<option value=""${selected == null ? ' selected' : ''}>No Limit</option>`;
+      for (const v of [10, 20, 30]) {
+          html += `<option value="${v}"${String(v) === String(selected) ? ' selected' : ''}>${v}</option>`;
+      }
+      return html;
+  }
+
+  function maxVolLimitOptions(selected) {
+      let html = '';
+      for (const v of [50, 60, 70, 80, 90]) {
+          html += `<option value="${v}"${String(v) === String(selected) ? ' selected' : ''}>${v}</option>`;
+      }
+      html += `<option value=""${selected == null ? ' selected' : ''}>No Limit</option>`;
+      return html;
+  }
+
+  // Persists one speaker's Min/Max Volume Slider Limits into settings.json's
+  // volumeLimits array (used by /api/status to clamp the Remote Control page's
+  // volume slider — see routes/controller.js). Re-fetches settings fresh rather than
+  // caching them client-side, so a save here can't clobber a change made elsewhere
+  // (e.g. Tools page open in another tab) between page load and this edit.
+  async function saveVolumeLimit(ip) {
+      const minEl = document.getElementById(`minvol-${ip}`);
+      const maxEl = document.getElementById(`maxvol-${ip}`);
+      const minVal = minEl.value === '' ? null : parseInt(minEl.value, 10);
+      const maxVal = maxEl.value === '' ? null : parseInt(maxEl.value, 10);
+
+      const res = await fetch('api/admin/settings');
+      const settings = await res.json();
+      let volumeLimits = Array.isArray(settings.volumeLimits) ? settings.volumeLimits : [];
+      volumeLimits = volumeLimits.filter(v => v.speakerIp !== ip);
+      if (minVal != null || maxVal != null) {
+          volumeLimits.push({ speakerIp: ip, min: minVal, max: maxVal });
+      }
+
+      await fetch('api/admin/settings', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ volumeLimits })
+      });
+  }
+
   async function loadAdmin() {
-    const statusRes = await fetch('api/status');
+    const [statusRes, settingsRes] = await Promise.all([fetch('api/status'), fetch('api/admin/settings')]);
     const devices = await statusRes.json();
-    
+    const settings = await settingsRes.json();
+    const volumeLimits = Array.isArray(settings.volumeLimits) ? settings.volumeLimits : [];
+
     document.getElementById('admin-grid').innerHTML = devices.map(d => {
       if (!d.online) return `<div class="card" style="border-style:dashed;"><h3>${d.name}</h3><div style="color:#e74c3c; font-weight:bold; font-size:0.8em; margin-top:10px;">OFFLINE / UNREACHABLE</div></div>`;
-      
+
 		const typeStr = d.type || "";
       const hasClock = typeStr.includes("20") || typeStr.includes("30") || typeStr.includes("Portable");
       // Wave SoundTouch doesn't expose /bassCapabilities — the control just silently
       // fails on that hardware. Trap on the type string until we confirm SB300's status.
       const hasBass = !typeStr.includes("Wave");
-      
+
+      const volLimit = volumeLimits.find(v => v.speakerIp === d.ip) || {};
+
       return `
         <div class="card">
           <h3>${d.name}</h3>
@@ -112,7 +165,21 @@
                        ontouchend="hideBubble('bass-${d.ip}')">
             </div>
           </div>
-          
+
+          <div class="control-row" style="align-items:flex-start; flex-direction:column; gap:5px;">
+            <label>Volume Slider Limits</label>
+            <div style="display:flex; gap:15px; width:100%;">
+                <div style="display:flex; align-items:center; gap:6px;">
+                    <label style="font-size:0.85em; color:var(--text); opacity:0.8;">Min</label>
+                    <select id="minvol-${d.ip}" style="width:100px; background:var(--bg-color); color:var(--text); border:1px solid #777; padding:4px; border-radius:3px;" onchange="saveVolumeLimit('${d.ip}')">${minVolLimitOptions(volLimit.min)}</select>
+                </div>
+                <div style="display:flex; align-items:center; gap:6px;">
+                    <label style="font-size:0.85em; color:var(--text); opacity:0.8;">Max</label>
+                    <select id="maxvol-${d.ip}" style="width:100px; background:var(--bg-color); color:var(--text); border:1px solid #777; padding:4px; border-radius:3px;" onchange="saveVolumeLimit('${d.ip}')">${maxVolLimitOptions(volLimit.max)}</select>
+                </div>
+            </div>
+          </div>
+
           <div class="control-row">
             <label>Auto-Off</label>
             <button id="ao-${d.ip}" onclick="tA('${d.ip}', this)">...</button>

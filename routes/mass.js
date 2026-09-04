@@ -134,18 +134,33 @@ async function playMedia(target, item) {
     await new Promise(r => setTimeout(r, 250));
 
     // Play Command with explicit OpenAPI parameters
-    const args = { 
-        queue_id: player.targetId, 
-        media: [uri], 
-        enqueue: "play",      
-        radio_mode: false,    
+    const args = {
+        queue_id: player.targetId,
+        media: [uri],
+        enqueue: "play",
+        radio_mode: false,
         autostart: true
     };
+
+    // Podcast presets can opt into always starting the newest episode instead of
+    // whatever MASS would otherwise resume/default to (MASS 2.10.0+, PR #3832).
+    // Only sent when explicitly set — omitting the key entirely for every other
+    // item matches how this endpoint behaved before start_item existed.
+    if (item.settings?.startFromLatest) args.start_item = "latest";
 
     const success = await sendWithRetry(player.targetId, player.targetIp, "player_queues/play_media", args, { kickstart: false, forceSuccess: true });
     
     // (Ensure you keep your applySettings function if you had one, otherwise remove this line)
     if (success && item.settings && typeof applySettings === 'function') applySettings(player.targetId, item.settings);
+
+    // Preset's own default Start Volume (discussion #174). Lives here rather than only
+    // in executeSmartPreset() so every playMedia() caller gets it — the physical preset
+    // button, HA On-Demand, Scheduled Play, AND manual "▶ Play" on a preset card from
+    // the Library page (manager.js /manager/play_now), which calls playMedia() directly
+    // and never goes through executeSmartPreset. Scheduled Play's own per-event volume
+    // override still runs after this (in firePlayEvent) and wins.
+    if (success && item.settings?.volume != null) await setVolume(player.targetIp, item.settings.volume);
+
     return success;
 }
 

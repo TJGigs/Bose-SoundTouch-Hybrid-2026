@@ -15,9 +15,15 @@ function localTimestamp(d = new Date()) {
     return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
 }
 
-function buildImageUrl(artPath, provider, uri) {
+function buildImageUrl(artPath, provider, uri, proxyId) {
     if (artPath && typeof artPath === 'string' && artPath.startsWith('http') && !artPath.includes('imageproxy')) {
         return artPath;
+    }
+    // proxy_id is MASS's current image-proxy addressing scheme (replaced the old
+    // path+provider+checksum query string, which now 400s). Prefer it whenever MASS
+    // supplies one; fall back to path+provider for any image object that doesn't.
+    if (proxyId) {
+        return `api/manager/proxy_image?mode=id&id=${encodeURIComponent(proxyId)}`;
     }
     if (artPath && provider) {
         return `api/manager/proxy_image?mode=raw&path=${encodeURIComponent(artPath)}&provider=${encodeURIComponent(provider)}`;
@@ -556,6 +562,9 @@ async function executeSmartPreset(ip, id) {
         deviceState.setExpectation(ip, 'PRESET', id);
         
         try {
+            // Preset's own default Start Volume (discussion #174), if set, is applied
+            // inside playMedia() itself — see mass.js — so it fires for every caller of
+            // playMedia(), not just the ones that go through this function.
             await mass.playMedia(ip, match);
             return true; // 🌟 Tells bridge.js it was successful!
         } catch (e) {
@@ -844,7 +853,11 @@ async function discoverSpeakers(subnetOrCidr) {
                         const data = await parser.parseStringPromise(res.data);
                         if (!data || !data.info) return null;
                         const type = data.info.type ? String(data.info.type) : '';
-                        if (!type.toLowerCase().includes('soundtouch')) return null;
+                        const typeLower = type.toLowerCase();
+                        // Lifestyle systems (550/600/650) report <type>Lifestyle</type>, not
+                        // "SoundTouch" — same WAPI (SCM component on 8090), just a different
+                        // product line label. See #191.
+                        if (!typeLower.includes('soundtouch') && !typeLower.includes('lifestyle')) return null;
                         const name = data.info.name ? String(data.info.name) : 'Unknown Speaker';
                         const deviceId = data.info.deviceID ? String(data.info.deviceID)
                                        : (data.info.$ && data.info.$.deviceID) ? String(data.info.$.deviceID)

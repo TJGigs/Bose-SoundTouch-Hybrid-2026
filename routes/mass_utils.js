@@ -236,15 +236,12 @@ async function auditSpeakerConfig(baseUrl, reqConfig, massPlayers, speaker) {
     const targetConfigs = {
         "power_control": "none",
         "auto_play": false,
-        "volume_normalization": false,
         "tts_pre_announce": false,
-        "smart_fades_mode": "disabled",
         "volume_control": dlnaId,
         "mute_control":   dlnaId,
         "play_media_overrides_group": true,
         "preferred_output_protocol": activeId,
         [`${activeId}||protocol||enabled`]: true,
-        ...(activeMode === 'airplay' && airplayId ? { [`${airplayId}||protocol||airplay_protocol`]: 1 } : {}),
         ...(sendspinId ? { [`${sendspinId}||protocol||enabled`]: false } : {})
     };
 

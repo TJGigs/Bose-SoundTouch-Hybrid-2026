@@ -211,18 +211,27 @@
             <option value="4">Preset 4</option><option value="5">Preset 5</option><option value="6">Preset 6</option>
         </select>
       </div>
+
+      <div class="form-group" style="margin-bottom:0;">
+        <label>Start Volume (optional)</label>
+        <select id="edit-volume"><option value="">Unchanged</option></select>
+      </div>
     </div>
-    
+
     <label style="margin-top:15px; display:block; margin-bottom:5px;">Playback Options</label>
-    
+
     <div class="inner-panel" style="margin-bottom:20px;">
         <div class="check-row" id="row-shuffle" style="margin-bottom:10px;">
-            <input type="checkbox" id="edit-shuffle"> 
+            <input type="checkbox" id="edit-shuffle">
             <label style="display:inline; margin-left:8px;">Shuffle</label>
         </div>
         <div class="form-group" style="margin-bottom:0;">
             <label>Repeat</label>
             <select id="edit-repeat"><option value="off">Off</option><option value="all">Repeat All</option><option value="one">Repeat One</option></select>
+        </div>
+        <div class="check-row" id="row-start-latest" style="margin-top:10px; display:none;">
+            <input type="checkbox" id="edit-start-latest">
+            <label style="display:inline; margin-left:8px;">Always Play Latest Episode</label>
         </div>
     </div>
     
@@ -351,6 +360,20 @@
       buildSearchMenu(); // 2. Draw the menu using those settings
       loadProviders().then(() => loadLibrary());
       fetchSpeakers();
+      populateVolumeSelect();
+  }
+
+  // Preset's optional default Start Volume — same tick-wheel pattern as Scheduled
+  // Play's volume override in tools.html (step of 5, never 0 so a preset can't
+  // accidentally mute the speaker; "Unchanged" covers "don't set a volume").
+  function populateVolumeSelect() {
+      const volSel = document.getElementById('edit-volume');
+      if (!volSel) return;
+      const volOpts = ['<option value="">Unchanged</option>'];
+      for (let v = 5; v <= 100; v += 5) {
+          volOpts.push(`<option value="${v}">${v}</option>`);
+      }
+      volSel.innerHTML = volOpts.join('');
   }
 
   async function loadProviders() {
@@ -1167,6 +1190,24 @@
           shuf.checked = item.settings?.shuffle || false;
           rep.value = item.settings?.repeat || 'off';
       }
+
+      // "Always Play Latest Episode" — show-level podcast saves only (MASS 2.10+
+      // start_item support, discussion #168). Hidden entirely for every other type
+      // rather than just disabled, since it's meaningless outside podcasts.
+      const startLatestRow = document.getElementById('row-start-latest');
+      const startLatestChk = document.getElementById('edit-start-latest');
+      if (type === 'podcast') {
+          startLatestRow.style.display = '';
+          startLatestChk.checked = item.settings?.startFromLatest || false;
+      } else {
+          startLatestRow.style.display = 'none';
+          startLatestChk.checked = false;
+      }
+
+      // Preset's default Start Volume (discussion #174) — lives in #preset-assign-fields
+      // alongside Target Speaker/Slot since it only applies once this is assigned to a
+      // preset button; togglePresetAssignFields() controls that block's visibility.
+      document.getElementById('edit-volume').value = item.settings?.volume ?? '';
   }
 
   function closeModal() {
@@ -1186,7 +1227,9 @@
           speakerIp: document.getElementById('edit-assign-preset').checked ? document.getElementById('edit-speaker').value : '',
           settings: {
               shuffle: document.getElementById('edit-shuffle').checked,
-              repeat: document.getElementById('edit-repeat').value
+              repeat: document.getElementById('edit-repeat').value,
+              startFromLatest: document.getElementById('edit-start-latest').checked,
+              volume: document.getElementById('edit-volume').value
           }
       };
 

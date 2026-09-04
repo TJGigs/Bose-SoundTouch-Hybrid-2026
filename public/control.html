@@ -522,6 +522,15 @@
           // value instead of just drifting within its oversized tolerance.
           const thumbLeft = (fraction) => `calc(10px + (100% - 20px) * ${fraction})`;
 
+          // Per-speaker volume slider limits (discussion #186) — UI-only, defaults to
+          // no limit when unset. Never applied while grouped (master or slave): the
+          // group's delta math on the GRP slider moves every member by the same
+          // amount, and a per-speaker cap would desync that — one member hits its
+          // limit and stops while the others keep moving, breaking the shared delta.
+          const isGrouped = isGroupMaster || isGroupMember;
+          const volMin = isGrouped ? 0 : (d.minVolume ?? 0);
+          const volMax = isGrouped ? 100 : (d.maxVolume ?? 100);
+
           // Renders a set of preset buttons either as plain number buttons (default)
           // or, when descriptivePresets is on, as a single wide button per preset
           // (number + name combined) spanning the same 3-column width so the row
@@ -569,11 +578,13 @@
             <span style="font-size:0.8em; color:var(--text-secondary)">VOL</span>
             <span id="bubble-${d.ip}" class="vol-bubble"></span>
 
-            <input type="range" class="slider-guarded" id="vol-${d.ip}" min="0" max="100" value="${d.volume}" ${dis(ui.volDisabled)}
+            <input type="range" class="slider-guarded" id="vol-${d.ip}" min="0" max="100" value="${d.volume}" data-limit-min="${volMin}" data-limit-max="${volMax}" ${dis(ui.volDisabled)}
                    oninput="handleVolumeInput('${d.ip}', this.value, this)"
                    onchange="handleVolumeSet('${d.ip}', this.value)"
                    onmousedown="showBubble('${d.ip}')"
                    onmouseup="hideBubble('${d.ip}')">
+            ${volMin > 0 ? `<div class="slider-limit-tick" style="left:${thumbLeft(volMin / 100)};"></div>` : ''}
+            ${volMax < 100 ? `<div class="slider-limit-tick" style="left:${thumbLeft(volMax / 100)};"></div>` : ''}
             <div class="slider-thumb-handle ${cls(ui.volDisabled)}" style="left:${thumbLeft(d.volume / 100)};"
                  onpointerdown="startThumbDrag(event, this, 'vol-${d.ip}', () => showBubble('${d.ip}'))"
                  onpointermove="moveThumbDrag(event, this, 'vol-${d.ip}')"
@@ -877,8 +888,27 @@
       onDragEnd();
   }
 
+  // Clamps a volume slider's dragged value to its configured min/max (discussion #186).
+  // The <input> itself always spans 0-100 now (not min/max) so an out-of-band actual
+  // volume — set from the physical unit or Bose app, not this slider — can still rest
+  // past the limit and be seen. Dragging can never push further out (the value simply
+  // can't cross the limit), but a drag starting from that out-of-band rest position can
+  // freely move it back toward the band from whichever side it's on. Forcing el.value
+  // back to the clamped number is what visually hard-stops the thumb at the limit,
+  // whether the drag came from the native input (desktop mouse) or the synthetic input
+  // event dispatched by updateSliderFromPointer (touch).
+  function clampToVolumeLimit(el, value) {
+      if (!el) return value;
+      const limitMin = el.dataset.limitMin != null ? parseInt(el.dataset.limitMin, 10) : parseInt(el.min, 10);
+      const limitMax = el.dataset.limitMax != null ? parseInt(el.dataset.limitMax, 10) : parseInt(el.max, 10);
+      const clamped = Math.min(limitMax, Math.max(limitMin, parseInt(value, 10)));
+      if (String(clamped) !== el.value) el.value = clamped;
+      return clamped;
+  }
+
   // Handles live dragging of the volume slider.
   function handleVolumeInput(ip, value, el) {
+      value = clampToVolumeLimit(el, value);
       isUserInteracting = true; // Pauses polling while dragging.
       if (interactionWatchdog)
           clearTimeout(interactionWatchdog);
@@ -924,6 +954,7 @@
 
   // Handles the "mouse up" or "touch end" event (Final value commit).
   async function handleVolumeSet(ip, value) {
+      value = clampToVolumeLimit(document.getElementById(`vol-${ip}`), value);
       if (volumeThrottleTimer)
           clearTimeout(volumeThrottleTimer);
       if (interactionWatchdog)

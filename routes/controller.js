@@ -226,6 +226,24 @@ router.get('/status', async (req, res) => {
             console.error("[Control] ⚠️ Error processing stereo_pairs.json:", err.message);
         }
 
+        // --- PER-SPEAKER VOLUME SLIDER LIMITS (UI-only, discussion #186) ---
+        // Clamps the Remote Control page's volume slider range, nothing else — presets,
+        // Scheduled Play, the physical remote, and the Bose app all bypass this
+        // entirely. Defaults to no limit (0-100) for any speaker without an entry.
+        try {
+            const settingsFile = path.join(process.cwd(), 'config', 'settings.json');
+            if (fs.existsSync(settingsFile)) {
+                const volumeLimits = JSON.parse(fs.readFileSync(settingsFile, 'utf8')).volumeLimits || [];
+                states.forEach(state => {
+                    if (!state) return;
+                    const limit = volumeLimits.find(v => v.speakerIp === state.ip);
+                    state.minVolume = (limit && limit.min != null) ? limit.min : 0;
+                    state.maxVolume = (limit && limit.max != null) ? limit.max : 100;
+                });
+            }
+        } catch (err) {
+            console.error("[Control] ⚠️ Error processing volumeLimits:", err.message);
+        }
 
         // 2. MASTER-TO-SLAVE UI INHERITANCE
         // Find all active Master speakers

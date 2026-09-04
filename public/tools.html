@@ -2216,7 +2216,7 @@ async function saveScheduledEvents(silent = false) {
 				return;
 			}
 			list.innerHTML = speakers.map((d, index) => `
-				<li style="display:flex; align-items:center; gap:10px; padding:10px; background:var(--input-bg); border-bottom:1px solid var(--border);">
+				<li style="display:flex; flex-wrap:wrap; align-items:center; gap:10px; padding:10px; background:var(--input-bg); border-bottom:1px solid var(--border);">
 					<span style="font-size:0.9em;">🔊</span>
 					<span style="color:var(--text); font-weight:bold;">${d.name}</span>
 					<span style="color:var(--text-secondary); font-family:monospace; font-size:0.85em;">${d.ip}</span>
@@ -2364,7 +2364,7 @@ async function saveScheduledEvents(silent = false) {
 					resultsList.innerHTML = '<li style="padding:10px; background:var(--input-bg); color:var(--text-secondary); font-style:italic;">No speakers found. Check that your speakers are powered on and on the same network.</li>';
 				} else {
 					resultsList.innerHTML = speakers.map(s => `
-						<li style="display:flex; align-items:center; gap:10px; padding:10px; background:var(--input-bg); border-bottom:1px solid var(--border);">
+						<li style="display:flex; flex-wrap:wrap; align-items:center; gap:10px; padding:10px; background:var(--input-bg); border-bottom:1px solid var(--border);">
 							<span>🟢</span>
 							<span style="color:var(--text); font-weight:bold;">${s.name}</span>
 							<span style="color:var(--text-secondary); font-family:monospace; font-size:0.85em;">${s.ip}</span>

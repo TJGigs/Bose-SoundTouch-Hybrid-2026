@@ -1,4 +1,4 @@
-# <img src="public/images/hybrid_icon.png" width="30"> Bose SoundTouch Hybrid v4.2
+# <img src="public/images/hybrid_icon.png" width="30"> Bose SoundTouch Hybrid v4.3
 
 **A free, open-source private SoundTouch cloud streaming service and application replacing the deactivated Bose Cloud Service to maintain 100% of the smart speaker functionality of your SoundTouch Speakers and Wireless Link. Physical Presets Included!**
 
@@ -8,13 +8,27 @@ It runs locally on your network (NAS, PC, or Home Assistant add-on) and intercep
 
 ---
 
-## ⚠️ Upgrading to v4.2
+## ⚠️ Upgrading to v4.3
 
-* **Application settings are being reinitialized.** Startup detects the old settings format and backs it up to `settings.json.bak`. Make any changes as desired on first boot — scheduled plays, admin PIN, and other preferences start fresh.
-* **New `.env` schema.** Startup copies a fresh `.env` template into your directory and backs up your old file. Re-enter your values into the new `.env`.  Don't reuse your old `.env` file 
+* **Application settings are being reinitialized in v4.2.** Startup detects the old settings schema and backs up your existing `settings.json` to `settings.json.bak`. Re-configure Scheduled Play/Off, Power Off Timers, and other preferences on first boot.
+* **New `.env` schema in v4.2.** Startup copies a fresh `.env` template into your directory and backs up your old file. Re-enter your values into the new `.env`.  Don't reuse your old `.env` file 
 * **New [`bose-soundtouch-hybrid.yml`](https://github.com/TJGigs/Bose-SoundTouch-Hybrid/blob/main/bose-soundtouch-hybrid.yml) required.** Download the current version.  Don't reuse an old copy.
-* **Application settings are being reinitialized.** Startup detects the old settings format and backs it up to `settings.json.bak`. Make any changes as desired on first boot — scheduled plays, admin PIN, and other preferences start fresh.
 * Full upgrade steps: see [Installations](#installations) below.
+
+---
+
+## ✨ V4.3 Enhancements
+
+* ✅ Added Volume Min/Max Volumn Slider Limits (#186, #187)
+* ✅ Added "Always Play Latest Episode" to Library/Preset podcasts (#168)
+* ✅ Added Preset Volume options to assigned presets (#174)
+* ✅ Added Bose "Lifestyle" speakers to auto speaker scan and config (#191)
+* ✅ Updated preflight MA player config drift to reflect new MA 2.10 settings
+* ✅ Updated local NAS album art loading to uss changed MA 2.10 API
+* ✅ Restored inadvertently deleted factory reset SETUP_LANG_NOT_SET logic (#189) 
+* ✅ Favorites filter buttons center correctly on mobile
+* ✅ Manual Setup Guide mobile close button fix
+* ✅ Speaker list rows (Configured Speakers / Scan Results) no longer get clipped on mobile
 
 ---
 
@@ -191,7 +205,7 @@ It runs locally on your network (NAS, PC, or Home Assistant add-on) and intercep
 
 ***You must verify your SoundTouch speakers and streaming providers are fully working inside of Music Assistant before installing SoundTouch Hybrid.***
 
-Install Music Assistant (MASS): ***version 2.9.9 or later is required***
+Install Music Assistant (MASS): ***version 2.10.1 or later is required***
 
 1. **For installation instructions and troubleshooting, use Music Assistant Help** — setup, providers, speaker testing, playback issues, etc.
    * See [MASS GitHub](https://github.com/music-assistant/server) and [MASS Website](https://www.music-assistant.io/installation)

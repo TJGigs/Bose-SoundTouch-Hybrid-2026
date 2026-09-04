@@ -4,6 +4,7 @@ const path = require('path');
 const axios = require('axios');
 const xml2js = require('xml2js');
 const net = require('net');
+const WebSocket = require('ws');
 const { pushPresetsToSpeaker, speakerHasHybridPresets } = require('./utils');
 
 async function auditSpeakerClock(ip, name) {
@@ -201,6 +202,62 @@ async function waitForJanitorReboot(ip) {
 }
 
 
+// THE GABBO LANGUAGE HEALER (restored from pre-v3.4 bose_cloud.js — see issue #189)
+// Drives the speaker's own native setup state machine directly over the port 8080
+// "gabbo" WebSocket. This is independent of margeId/NVRAM health — a factory-reset
+// speaker can have a perfectly valid margeId and cloud config and still be stuck
+// reporting SETUP_LANG_NOT_SET, because that's a separate local firmware flag never
+// touched by the port 17000 NVRAM injection or the cloud-emulated account XML.
+// English-only (no multi-language support). The 2s wait between each send is
+// required — without it, the state change lands in RAM but the connection closes
+// before firmware finishes the disk write, and the stuck state returns on reboot.
+function injectGabboLanguageFix(ip, deviceId, deviceName, accountId) {
+    return new Promise((resolve) => {
+        const ws = new WebSocket(`ws://${ip}:8080/`, 'gabbo');
+        const sleep = (ms) => new Promise(r => setTimeout(r, ms));
+        let settled = false;
+
+        const finish = (result) => {
+            if (settled) return;
+            settled = true;
+            try { ws.close(); } catch (e) {}
+            resolve(result);
+        };
+
+        const hardTimeout = setTimeout(() => finish(false), 20000);
+
+        ws.on('error', (err) => {
+            console.log(`   ├─ ❌ Gabbo WS Error: ${err.message}`);
+            clearTimeout(hardTimeout);
+            finish(false);
+        });
+
+        ws.on('open', async () => {
+            const sendCommand = async (xml, stepName) => {
+                ws.send(xml);
+                console.log(`   ├─ [Gabbo] ↳ Sent: ${stepName} - Waiting 2s for NVRAM commit...`);
+                await sleep(2000);
+            };
+
+            try {
+                await sendCommand(`<?xml version="1.0"?><msg><header deviceID="${deviceId}" url="language" method="POST"><request requestID="74"><info mainNode="language" type="new"/><sourceItem source="SETTINGS" sourceAccount="${deviceId}"/></request></header><body><sysLanguage>3</sysLanguage></body></msg>`, 'Language (English)');
+                await sendCommand(`<msg><header deviceID="${deviceId}" url="name" method="POST"><request requestID="30"></request></header><body><name>${deviceName}</name></body></msg>`, 'Speaker Name');
+                await sendCommand(`<msg><header deviceID="${deviceId}" url="setMargeAccount" method="POST"><request requestID="31"></request></header><body><PairDeviceWithAccount><accountId>${accountId}</accountId></PairDeviceWithAccount></body></msg>`, 'Account Binding');
+                await sendCommand(`<msg><header deviceID="${deviceId}" url="setup" method="POST"><request requestID="100"></request></header><body><setupState state="SETUP_READY"/></body></msg>`, 'Setup Ready');
+                await sendCommand(`<msg><header deviceID="${deviceId}" url="setup" method="POST"><request requestID="32"></request></header><body><setupState state="SETUP_LEAVE" /></body></msg>`, 'Setup Leave & Seal');
+
+                console.log(`   └─ 🎉 Gabbo language/setup-state sequence complete.`);
+                clearTimeout(hardTimeout);
+                finish(true);
+            } catch (error) {
+                console.log(`   ├─ ❌ Gabbo Sequence Error: ${error.message}`);
+                clearTimeout(hardTimeout);
+                finish(false);
+            }
+        });
+    });
+}
+
 /**
  * CORE BOOTLOADER ENGINE: Evaluates fleet state, processes NVRAM injections, and executes targeted reboots.
  * @param {string|null} forceInjectTarget - IP address of specific speaker to force-inject, or 'all'.
@@ -264,6 +321,36 @@ async function runSetup(forceInjectTarget = null, forceRebootTarget = null) {
             
             // Sync internal clock to prevent TLS/Cloud rejections
             await auditSpeakerClock(speaker.ip, speaker.name);
+
+            // ==========================================================
+            // PHASE 2.5: NATIVE SETUP-STATE AUDIT (Language Loop Detection)
+            // ==========================================================
+            // Detects a speaker stuck in the native Bose setup state machine after a
+            // factory reset. Independent of margeId/NVRAM health — see issue #189.
+            try {
+                const npRes = await axios.get(`http://${speaker.ip}:8090/now_playing`, { timeout: 2000 });
+                const setupRes = await axios.get(`http://${speaker.ip}:8090/setup`, { timeout: 2000 });
+                const npData = await parser.parseStringPromise(npRes.data);
+                const setupData = await parser.parseStringPromise(setupRes.data);
+
+                const npSource = npData?.nowPlaying?.['$']?.source || 'UNKNOWN';
+                const sysState = setupData?.setupStateResponse?.['$']?.systemstate || 'UNKNOWN';
+
+                const isStuckInSetup = (npSource === 'SETUP');
+                const isLangNotSet = (sysState === 'SETUP_LANG_NOT_SET');
+
+                if (isStuckInSetup || isLangNotSet) {
+                    console.log(`   ├─ ⚠️ Native setup-state stuck (NowPlaying: ${npSource}, SystemState: ${sysState}). Running Gabbo language fix...`);
+                    const hasValidMargeId = currentMargeId !== "" && currentMargeId !== "0000000" && currentMargeId !== "UNKNOWN_MAC";
+                    const accountIdForGabbo = hasValidMargeId ? currentMargeId : macAddress;
+                    const fixed = await injectGabboLanguageFix(speaker.ip, macAddress, speaker.name, accountIdForGabbo);
+                    console.log(fixed
+                        ? `   ├─ ✅ Gabbo language fix completed for ${speaker.name}.`
+                        : `   ├─ ❌ Gabbo language fix failed for ${speaker.name}.`);
+                }
+            } catch (e) {
+                console.log(`   ├─ ⚠️ Native setup-state audit failed for ${speaker.name}: ${e.message}`);
+            }
 
             // ==========================================================
             // PHASE 3: HIERARCHICAL EXECUTION LOGIC
